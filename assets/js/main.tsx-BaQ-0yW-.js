@@ -1,2 +1,0 @@
-import{a,g as s,j as t,R as n,B as i,A as c}from"./App.tsx-CLekjRQa.js";/* empty css                  */var e={},o;function m(){if(o)return e;o=1;var r=a();return e.createRoot=r.createRoot,e.hydrateRoot=r.hydrateRoot,e}var R=m();const u=s(R);u.createRoot(document.getElementById("root")).render(t.jsx(n.StrictMode,{children:t.jsx(i,{basename:"/GameAssessmentTool",children:t.jsx(c,{})})}));
-//# sourceMappingURL=main.tsx-BaQ-0yW-.js.map
