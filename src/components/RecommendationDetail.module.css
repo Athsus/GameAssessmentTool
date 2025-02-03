@@ -1,0 +1,117 @@
+.detailContainer {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 450px;  /* 稍微加宽以适应更多内容 */
+  height: 100vh;
+  background: white;
+  box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+  padding: 1.5rem;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+}
+
+.recommendationItem {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  background: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.recommendationItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.recommendationItem.selected {
+  border-color: #007bff;
+  background: #f0f7ff;
+}
+
+/* 添加一个选中标记 */
+.selected::after {
+  content: '✓';
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: #007bff;
+  font-weight: bold;
+}
+
+.imageContainer {
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.imageContainer img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+}
+
+.content h4 {
+  margin: 0 0 0.8rem 0;
+  color: #2c3e50;
+  font-size: 1.1rem;
+}
+
+.description {
+  color: #666;
+  margin: 0.5rem 0;
+  line-height: 1.4;
+}
+
+.link {
+  display: inline-block;
+  margin-top: 0.8rem;
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.platform {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.2rem 0.5rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.error {
+  color: #dc3545;
+  padding: 1rem;
+  text-align: center;
+} 

@@ -1,0 +1,60 @@
+.container {
+  background-color: #f5f5f5;
+  min-height: 100vh;
+}
+
+.assessmentContainer {
+  padding: 2rem;
+}
+
+.assessmentTitle {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.assessmentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.assessmentCard {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.assessmentCard.disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.cardTitle {
+  margin-bottom: 1rem;
+}
+
+.cardDescription {
+  margin-bottom: 1.5rem;
+}
+
+.assessmentButton {
+  padding: 0.5rem 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.assessmentButton:hover {
+  background-color: #0056b3;
+}
+
+.underConstruction {
+  color: #ff6b6b;
+  font-weight: 500;
+  margin: 8px 0;
+  font-style: italic;
+} 

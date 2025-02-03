@@ -1,0 +1,479 @@
+.container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #f5f5f5;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.form {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.section {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 2rem;
+}
+
+.formGroup {
+  margin-bottom: 1.5rem;
+}
+
+/* Add separator for specific sections */
+.formGroup[data-section="at-used"],
+.formGroup[data-section="access-methods"],
+.formGroup[data-section="gaming-history"] {
+  border-top: 1px solid #ddd;
+  padding-top: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.formGroup label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #444;
+}
+
+.formGroup input[type="text"],
+.formGroup input[type="tel"],
+.formGroup input[type="date"],
+.formGroup textarea {
+  width: 100%;
+  padding: 0.3rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  height: 32px;
+}
+
+.formGroup textarea {
+  min-height: 32px;
+  height: 32px;
+  resize: vertical;
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.checkboxGroup > div {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.checkboxGroup input[type="text"] {
+  width: auto;
+  flex: 1;
+  height: 32px;
+  padding: 0.3rem;
+}
+
+.checkboxGroup label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0;
+  min-width: 150px;
+}
+
+.consoleOptions {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.consoleOptions label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.submitButton {
+  width: 100%;
+  padding: 1rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 2rem;
+}
+
+.submitButton:hover {
+  background-color: #0056b3;
+}
+
+.tableSection {
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  background-color: #e8f4f8;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.dominantHand {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.assessmentTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.assessmentTable th,
+.assessmentTable td {
+  border: 1px solid #ddd;
+  padding: 0.8rem;
+}
+
+.assessmentTable th {
+  background-color: #f8f9fa;
+  font-weight: 500;
+}
+
+.assessmentTable td div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.assessmentTable textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.cognitiveStatus {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.subtitle {
+  font-weight: 500;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.bulletList {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.bulletList li {
+  margin-bottom: 0.5rem;
+}
+
+.sectionHeader td {
+  background-color: #e8f4f8;
+  font-weight: 500;
+  text-align: left;
+}
+
+.assessmentTable a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.assessmentTable a:hover {
+  text-decoration: underline;
+}
+
+.commentInput {
+  width: 100%;
+  padding: 0.3rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-height: 32px;
+}
+
+.commentInput:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+}
+
+/* 修改表格单元格的样式以适应输入框 */
+.assessmentTable td {
+  padding: 0.5rem;
+  vertical-align: middle;
+}
+
+/* 调整复选框容器的样式 */
+.assessmentTable td div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.assessmentTable td label {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 2rem;  /* 增加标签之间的间距 */
+}
+
+.assessmentTable td label input[type="checkbox"] {
+  margin-right: 0.5rem;  /* 增加复选框和文字之间的间距 */
+}
+
+.mainItem td {
+  background-color: #f8f9fa;
+  font-weight: 500;
+}
+
+.subItem td {
+  padding-left: 2rem;  /* 缩进子项 */
+}
+
+.horizontalCheckboxes {
+  display: flex;
+  flex-direction: row !important;  /* 覆盖之前的 column 方向 */
+  gap: 2rem;
+  align-items: center;
+}
+
+.horizontalCheckboxes label {
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* 调整表格单元格的垂直对齐 */
+.assessmentTable td {
+  vertical-align: top;
+}
+
+/* 确保复选框容器不会换行 */
+.assessmentTable td > div {
+  white-space: nowrap;
+}
+
+/* 调整主项的样式 */
+.mainItem {
+  border-top: 2px solid #dee2e6;
+}
+
+/* 调整子项的样式 */
+.subItem td:first-child {
+  font-style: italic;
+  color: #666;
+}
+
+.infoButton {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+.infoButton:hover {
+  background-color: #0056b3;
+}
+
+.tooltip {
+  position: absolute;
+  background-color: #333;
+  color: white;
+  padding: 0.8rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  max-width: 1000px;
+  z-index: 1000;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.tooltip::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: transparent #333 transparent transparent;
+}
+
+.assessmentTable td:first-child {
+  width: 200px;
+  position: relative;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* 确保 Comments 列有足够空间 */
+.assessmentTable td:last-child {
+  width: 300px;  /* 或者其他合适的宽度 */
+}
+
+.cellContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cellInput {
+  width: 100%;
+  padding: 0.3rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-height: 32px;
+}
+
+.cellInput:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* 调整表格单元格的样式以适应新的输入框 */
+.assessmentTable td {
+  padding: 0.5rem;
+  min-width: 120px;  /* 确保单元格有最小宽度 */
+}
+
+/* 第一列保持原有宽度 */
+.assessmentTable td:first-child {
+  width: 200px;
+  min-width: auto;
+}
+
+.cellTextarea {
+  width: 100%;
+  padding: 0.3rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  min-height: 32px;
+  resize: vertical;  /* 允许垂直调整大小 */
+}
+
+.cellTextarea:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+/* 调整复选框的样式和对齐 */
+.assessmentTable td input[type="checkbox"] {
+  margin: 0;
+  vertical-align: middle;
+}
+
+/* 移除之前的 cellInput 相关样式 */
+.cellContent,
+.cellInput {
+  display: none;
+}
+
+.recommendationTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.recommendationTable td {
+  border: 1px solid #ddd;
+  padding: 1rem;
+  vertical-align: top;
+}
+
+.recommendationTable td:first-child {
+  width: 200px;
+  background-color: #f8f9fa;
+  font-weight: 500;
+}
+
+.goalSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.periodSection {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.periodInput {
+  flex: 1;
+  min-height: 32px;
+  resize: vertical;
+}
+
+.goalContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.goalInput {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.recommendationInput {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.signatureInput {
+  width: 100%;
+  height: 32px;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+} 

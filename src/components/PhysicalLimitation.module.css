@@ -1,0 +1,71 @@
+.container {
+  padding: 2rem;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.database {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.assessmentTable {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #ddd;
+}
+
+.assessmentTable th,
+.assessmentTable td {
+  border: 1px solid #ddd;
+  padding: 1rem;
+  vertical-align: top;
+}
+
+.checkboxGroup {
+  display: flex;
+  gap: 1rem;
+  margin: 0.5rem 0;
+}
+
+.note {
+  font-style: italic;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.sideBySide {
+  display: flex;
+  gap: 2rem;
+  margin: 0.5rem 0;
+}
+
+.fingersList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.recommendations {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.recommendList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.recommendList label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+} 
