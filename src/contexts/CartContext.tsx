@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { type ReactNode } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 export interface CartItem {
   id: string;
@@ -16,7 +17,19 @@ interface CartContextType {
   clearCart: () => void;
 }
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+// 提供默认值
+const defaultContext: CartContextType = {
+  items: [],
+  addItem: () => {},
+  removeItem: () => {},
+  clearCart: () => {},
+};
+
+// 创建 context 时提供默认值
+const CartContext = createContext<CartContextType>(defaultContext);
+CartContext.displayName = 'CartContext'; // 添加显示名称，确保 context 被正确识别
+
+export { CartContext };
 
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
@@ -48,7 +61,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useCart must be used within a CartProvider');
   }
   return context;
