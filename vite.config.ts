@@ -15,18 +15,32 @@ export default defineConfig({
         main: path.resolve(__dirname, 'index.html'),
       },
       output: {
+        // 确保所有源文件被正确打包
         manualChunks(id) {
-          // 根据文件路径动态确定 chunk
-          if (id.includes('/src/components/')) {
-            return 'components';
+          // 包含所有 src 下的文件
+          if (id.includes('/src/')) {
+            const parts = id.split('/src/')[1];
+            const firstDir = parts.split('/')[0];
+            return firstDir || 'main';
           }
-          if (id.includes('/src/contexts/')) {
-            return 'contexts';
+        },
+        // 确保资源文件路径正确
+        assetFileNames: (assetInfo) => {
+          if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
+          
+          const extType = assetInfo.name.split('.').pop()?.toLowerCase() || '';
+          
+          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType)) {
+            return `assets/images/[name]-[hash][extname]`;
           }
-          if (id.includes('/src/styles/')) {
-            return 'styles';
+          if (extType === 'css') {
+            return `assets/css/[name]-[hash][extname]`;
           }
-        }
+          return `assets/[name]-[hash][extname]`;
+        },
+        // 确保 JS 文件路径正确
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
       },
     },
     // 复制额外的资源文件
