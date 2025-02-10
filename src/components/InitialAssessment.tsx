@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import BackButton from './BackButton';
+import ExportButton from './ExportButton';
 import styles from './InitialAssessment.module.css';
 import InitialAssessmentNav from './InitialAssessmentNav';
 
 const InitialAssessment: React.FC = () => {
   const [currentSection, setCurrentSection] = useState('basic');
+  const [isExporting] = useState(false);
 
   const renderSection = () => {
     switch (currentSection) {
@@ -20,7 +23,16 @@ const InitialAssessment: React.FC = () => {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>Initial Assessment Form</h1>
+      <BackButton />
+      <div className={styles.header}>
+        <h1 className={styles.title}>Initial Assessment Form</h1>
+      </div>
+      <ExportButton
+        title="Initial Assessment"
+        contentId="initial-assessment-content"
+        filename="initial-assessment.pdf"
+        formType="initial"
+      />
       <InitialAssessmentNav 
         currentSection={currentSection}
         onSectionChange={setCurrentSection}
@@ -28,6 +40,13 @@ const InitialAssessment: React.FC = () => {
       <div className={styles.form}>
         {renderSection()}
       </div>
+      
+      {isExporting && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingSpinner}></div>
+          <div className={styles.loadingText}>Generating PDF...</div>
+        </div>
+      )}
     </div>
   );
 };
@@ -35,7 +54,7 @@ const InitialAssessment: React.FC = () => {
 // Create separate components for each section
 const BasicInformation: React.FC = () => {
   return (
-    <div className={styles.section}>
+    <div id="initial-assessment-content" className={styles.section}>
       <div className={styles.formGroup}>
         <label htmlFor="name">Name</label>
         <input type="text" id="name" name="name" required />

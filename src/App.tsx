@@ -19,10 +19,10 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/initial-assessment" element={<InitialAssessment />} />
-          <Route path="/gefpt" element={<GEFPT />} />
           <Route path="/sensory-assessment" element={<SensoryAssessment />} />
           <Route path="/keyboard-assessment" element={<KeyboardAssessment />} />
           <Route path="/physical-limitation" element={<PhysicalLimitation />} />
+          <Route path="/gefpt" element={<GEFPT />} />
         </Routes>
       </div>
       <Cart />

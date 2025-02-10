@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BackButton from './BackButton';
 import styles from './SensoryAssessment.module.css';
 import RecommendationDetail from './RecommendationDetail';
 import { supabase } from '../supabaseClient';
@@ -114,6 +115,7 @@ const SensoryAssessment: React.FC = () => {
 
   return (
     <div className={styles.container}>
+      <BackButton />
       <h1 className={styles.title}>Sensory Accessibility Assessment</h1>
       <p className={styles.description}>
         Based on the assessment results, please evaluate the suitable functional requirements and corresponding

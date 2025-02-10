@@ -1,12 +1,23 @@
 import React from "react";
+import BackButton from "./components/BackButton";
+import ExportButton from "./components/ExportButton";
 import './index.css';
 import './form.css';
 
 const GEFPT: React.FC = () => {
+  // 获取今天的日期，格式化为 YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0];
+
   return (
     <div>
+      <BackButton />
+      <ExportButton
+        title="GEFPT"
+        contentId="gefpt-content"
+        filename="gefpt-assessment.pdf"
+      />
       <div className="form-container">
-        <div className="form-box">
+        <div id="gefpt-content" className="form-box">
           {/* Header */}
           <h1 className="form-title">
             Gaming Executive Function Performance Test (GEFPT)
@@ -49,7 +60,11 @@ const GEFPT: React.FC = () => {
               <label className="form-label">
                 Date <span className="required">*</span>
               </label>
-              <input className="form-input" type="date" required />
+              <input 
+                type="date" 
+                className="form-input" 
+                defaultValue={today}
+              />
             </div>
             <div className="form-field">
               <label className="form-label">

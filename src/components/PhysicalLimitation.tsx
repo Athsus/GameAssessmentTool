@@ -1,9 +1,11 @@
 import React from 'react';
+import BackButton from './BackButton';
 import styles from './PhysicalLimitation.module.css';
 
 const PhysicalLimitation: React.FC = () => {
   return (
     <div className={styles.container}>
+      <BackButton />
       <div className={styles.header}>
         <h2>Functional Limitations Assessment</h2>
         <div className={styles.database}>

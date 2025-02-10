@@ -13,12 +13,6 @@ const Home: React.FC = () => {
       path: '/initial-assessment'
     },
     {
-      id: 'gefpt',
-      title: 'GEFPT',
-      description: 'Gaming Executive Function Performance Test',
-      path: '/gefpt'
-    },
-    {
       id: 'sensory',
       title: 'Sensory Accessibility',
       description: 'Evaluate suitable functional requirements and recommendations for each limitation',
@@ -37,6 +31,12 @@ const Home: React.FC = () => {
       description: 'Assess physical limitations and recommend suitable gaming equipment',
       path: '/physical-limitation',
       status: 'under-construction'
+    },
+    {
+      id: 'gefpt',
+      title: 'GEFPT',
+      description: 'Gaming Executive Function Performance Test',
+      path: '/gefpt'
     }
     // {
     //   id: 'future1',
