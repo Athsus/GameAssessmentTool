@@ -23,7 +23,6 @@ const Home: React.FC = () => {
       title: 'Keyboard & Mouse Assessment',
       description: 'Evaluate functional needs and corresponding keyboard types for limitations',
       path: '/keyboard-assessment',
-      status: 'under-construction'
     },
     {
       id: 'physical',
@@ -37,6 +36,12 @@ const Home: React.FC = () => {
       title: 'GEFPT',
       description: 'Gaming Executive Function Performance Test',
       path: '/gefpt'
+    },
+    {
+      id: 'database',
+      title: 'Database Management',
+      description: 'Manage assessment data and user records',
+      path: '/database-management'
     }
     // {
     //   id: 'future1',

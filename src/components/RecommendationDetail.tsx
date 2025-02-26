@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styles from './RecommendationDetail.module.css';
-// import { useEffect, useState } from 'react';
-// import { supabase } from '../supabaseClient';
 import { useCart } from '../contexts/CartContext';
+import { supabase } from '../supabaseClient';
+import ImageUrlInput from './ImageUrlInput';
 
 export interface RecommendationProduct {
   id: string;
@@ -29,138 +29,337 @@ export interface Recommendation {
 }
 
 interface RecommendationDetailProps {
-  // 支持两种传参方式
-  product?: RecommendationProduct;
   recommendations?: Recommendation[];
   onClose: (() => void) | ((code: string) => void);
-  onAddToCart?: () => void;
 }
 
 const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
-  product,
-  recommendations,
+  recommendations = [],
   onClose,
-  onAddToCart,
 }) => {
-  const { items, addItem } = useCart();
+  const { items, addItem, removeItem } = useCart();
+  const [showImageUrlInput, setShowImageUrlInput] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState('');
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [recommendationsState, setRecommendations] = useState(recommendations);
+  // 存储每个代码的展开/折叠状态
+  const [expandedCodes, setExpandedCodes] = useState<Record<string, boolean>>({});
+
+  // 使用 useEffect 监听 recommendations 属性的变化
+  useEffect(() => {
+    setRecommendations(recommendations);
+    
+    // 更新展开状态，确保新的代码也被展开
+    const initialExpandState: Record<string, boolean> = { ...expandedCodes };
+    recommendations.forEach(rec => {
+      if (initialExpandState[rec.code] === undefined) {
+        initialExpandState[rec.code] = true; // 默认展开新的代码
+      }
+    });
+    setExpandedCodes(initialExpandState);
+  }, [recommendations]);
 
   // 检查项目是否已被选中
   const isItemSelected = (id: string) => {
     return items.some(item => item.id === id);
   };
 
-  // 如果是新版本的单个产品展示
-  if (product) {
-    return (
-      <div className={styles.overlay}>
-        <div className={styles.modal}>
-          <button 
-            className={styles.closeButton} 
-            onClick={() => onClose(product.code)}
-          >
-            ×
-          </button>
-          
-          <div className={styles.content}>
-            {product.image_url && (
-              <img 
-                src={product.image_url} 
-                alt={product.name} 
-                className={styles.productImage}
-              />
-            )}
-            
-            <div className={styles.details}>
-              <h2>{product.name}</h2>
-              {product.category && <p className={styles.category}>{product.category}</p>}
-              {product.subcategory && (
-                <p className={styles.subcategory}>{product.subcategory}</p>
-              )}
-              {product.description && (
-                <p className={styles.description}>{product.description}</p>
-              )}
-              {product.price_range && (
-                <p className={styles.price}>Price Range: {product.price_range}</p>
-              )}
-              
-              <div className={styles.actions}>
-                <a 
-                  href={product.website} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className={styles.websiteLink}
-                >
-                  Visit Website
-                </a>
-                {onAddToCart && (
-                  <button 
-                    onClick={onAddToCart}
-                    className={styles.addToCartButton}
-                  >
-                    Add to Cart
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // 处理图片URL更新
+  const handleUpdateImageUrl = async (id: string, tableName: string, newUrl: string) => {
+    if (!newUrl.trim()) {
+      setUpdateMessage('Please enter a valid URL');
+      return;
+    }
 
-  // 如果是旧版本的多产品列表展示
-  if (recommendations) {
-    return (
-      <div className={styles.detailContainer}>
+    setIsUpdating(true);
+    
+    try {
+      // 确定要更新的表名
+      const table = tableName || 'keyboard_recommendations';
+      
+      const { error } = await supabase
+        .from(table)
+        .update({ image_url: newUrl })
+        .eq('id', id);
+        
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      setUpdateMessage('Image URL updated successfully!');
+      
+      // 更新本地状态，这样用户不需要刷新页面就能看到更新
+      const updatedRecommendations = recommendationsState.map(rec => {
+        if (rec.id === id) {
+          return { ...rec, image_url: newUrl };
+        }
+        return rec;
+      });
+      
+      // 如果有onRecommendationsUpdate函数，调用它
+      if (window.location.pathname.includes('keyboard-assessment')) {
+        // 通知KeyboardAssessment组件更新
+        const event = new CustomEvent('recommendationsUpdated', { 
+          detail: { recommendations: updatedRecommendations } 
+        });
+        window.dispatchEvent(event);
+      }
+      
+      // 更新本地状态
+      setRecommendations(updatedRecommendations);
+      
+      // 3秒后关闭消息
+      setTimeout(() => {
+        setUpdateMessage('');
+      }, 3000);
+
+      // 关闭输入框
+      setShowImageUrlInput(null);
+      
+    } catch (error) {
+      console.error('Error updating image URL:', error);
+      setUpdateMessage('Failed to update image URL');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // 处理项目选择/取消选择
+  const handleItemToggle = (item: Recommendation) => {
+    // 如果正在编辑图片URL，不要切换选择状态
+    if (showImageUrlInput === item.id) {
+      return;
+    }
+    
+    if (isItemSelected(item.id)) {
+      removeItem(item.id);
+    } else {
+      addItem({
+        id: item.id,
+        code: item.code,
+        product: item.product,
+        description: item.description,
+        website: item.website,
+        image_url: item.image_url
+      });
+    }
+  };
+
+  // 处理关闭按钮点击
+  // const handleClose = () => {
+  //   if (typeof onClose === 'function') {
+  //     const codeToPass = recommendations.length > 0 ? recommendations[0].code : '';
+  //     onClose(codeToPass);
+  //   }
+  // };
+
+  // 切换收缩状态
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
+  // 切换特定代码的展开/折叠状态
+  const toggleCodeExpand = (code: string) => {
+    setExpandedCodes(prev => ({
+      ...prev,
+      [code]: !prev[code]
+    }));
+  };
+
+  // 按代码分组推荐
+  const groupedRecommendations = recommendationsState.reduce((groups, rec) => {
+    if (!groups[rec.code]) {
+      groups[rec.code] = [];
+    }
+    groups[rec.code].push(rec);
+    return groups;
+  }, {} as Record<string, Recommendation[]>);
+
+  // 获取代码对应的用户友好标题
+  const getCodeTitle = (code: string, recs: Recommendation[]): string => {
+    // 从KeyboardAssessment组件中获取代码映射
+    const codeToTitleMap: Record<string, string> = {
+      '1.1': 'Ergonomic Keyboards',
+      '1.2': 'Split Keyboards',
+      '1.3': 'Gaming Keyboards',
+      '1.4': 'Compact Keyboards',
+      '1.5': 'Ergonomic Mouse',
+      '1.6': 'Gaming Mouse',
+      '2.1': 'Alternative Input Devices',
+      '2.2': 'Key Guard/Mouse Guard',
+      '2.3': 'Trackball Mouse',
+      '3.1': 'Low-Force Keyboards',
+      '3.2': 'Low-Force Mouse',
+      '4.1': 'Large-Key Keyboards',
+      '4.2': 'Braille Keyboards',
+      '5.1': 'Head/Mouth Stick Keyboard',
+      '5.2': 'Wearable Keyboards',
+      '5.3': 'Head Mouse',
+      '6.3': 'Eye-Tracking Mouse',
+      // 从SensoryAssessment组件中获取代码映射
+      '1.1.1': 'Text',
+      '1.1.2': 'Colour',
+      '1.1.3': 'Magnifier',
+      '1.1.4': 'Night Mode',
+      '1.1.5': 'Narrator',
+      '1.1.6': 'Copilot',
+      '1.1.7': 'Haptic Feedback',
+      '1.1.8': 'Audio-Driven Gameplay',
+      '1.1.9': 'Text-to-Speech',
+      '1.2.1': 'Colour-blind Modes',
+      '1.2.2': 'High Contrast',
+      '3.3.1': 'Pressure Sensitivity Button',
+      '3.3.2': 'Designed Lab',
+      '2.1.2': 'Low-Force Buttons',
+      'AS-1': 'Adaptive Switches',
+    };
+
+    // 首先尝试从映射中获取标题
+    if (codeToTitleMap[code]) {
+      return codeToTitleMap[code];
+    }
+    
+    // 如果映射中没有，尝试从推荐中获取类别或子类别
+    if (recs.length > 0) {
+      if (recs[0].subcategory) return recs[0].subcategory;
+      if (recs[0].category) return recs[0].category;
+    }
+    
+    // 最后的后备选项是代码本身
+    return `Code ${code}`;
+  };
+
+  return (
+    <div className={`${styles.detailContainer} ${isCollapsed ? styles.collapsed : ''}`}>
+      {/* 收缩按钮 */}
+      <button 
+        className={styles.collapseButton}
+        onClick={toggleCollapse}
+      >
+        {isCollapsed ? '>' : '<'}
+      </button>
+      
+      {/* 展开状态下显示的内容 */}
+      <div className={styles.detailContent}>
         <div className={styles.header}>
           <h3>Products & Resources</h3>
         </div>
         
-        <div className={styles.recommendationsList}>
-          {recommendations.map((rec) => (
-            <div 
-              key={rec.id} 
-              className={`${styles.recommendationItem} ${isItemSelected(rec.id) ? styles.selected : ''}`}
-              onClick={() => addItem({
-                id: rec.id,
-                code: rec.code,
-                product: rec.product,
-                description: rec.description,
-                website: rec.website,
-                image_url: rec.image_url
-              })}
-              role="button"
-              tabIndex={0}
-            >
-              {rec.image_url && (
-                <div className={styles.imageContainer}>
-                  <img src={rec.image_url} alt={rec.product} />
-                </div>
-              )}
-              <div className={styles.content}>
-                <h4>{rec.product}</h4>
-                {rec.description && (
-                  <p className={styles.description}>{rec.description}</p>
-                )}
-                {rec.website && (
-                  <a 
-                    href={rec.website} 
-                    target="_blank" 
-                    rel="noopener noreferrer" 
-                    className={styles.link}
-                  >
-                    View Details
-                  </a>
-                )}
+        {/* 按代码分组显示推荐 */}
+        {Object.entries(groupedRecommendations).map(([code, recs]) => (
+          <div key={code} className={styles.codeGroup}>
+            <div className={styles.codeHeader}>
+              <div 
+                className={styles.codeTitle}
+                onClick={() => toggleCodeExpand(code)}
+              >
+                <h4>{getCodeTitle(code, recs)}</h4>
+                <span>{expandedCodes[code] ? '▲' : '▼'}</span>
               </div>
+              <button 
+                className={styles.removeCodeButton}
+                onClick={() => {
+                  if (typeof onClose === 'function') {
+                    onClose(code);
+                  }
+                }}
+                aria-label="Remove this group"
+              >
+                ✕
+              </button>
             </div>
-          ))}
-        </div>
+            
+            {expandedCodes[code] && (
+              <div className={styles.codeRecommendations}>
+                {recs.map((rec) => (
+                  <div 
+                    key={rec.id} 
+                    className={`${styles.recommendationItem} ${isItemSelected(rec.id) ? styles.selected : ''}`}
+                    onClick={() => handleItemToggle(rec)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className={styles.imageContainer}>
+                      {rec.image_url ? (
+                        <img src={rec.image_url} alt={rec.product} />
+                      ) : (
+                        <div className={styles.noImage}>No Image</div>
+                      )}
+                      <button 
+                        className={styles.editImageButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setShowImageUrlInput(rec.id);
+                          setImageUrl(rec.image_url || '');
+                        }}
+                      >
+                        {rec.image_url ? '✏️' : '+'}
+                      </button>
+                    </div>
+                    <div className={styles.content}>
+                      <h4>{rec.product}</h4>
+                      {rec.description && (
+                        <p className={styles.description}>{rec.description}</p>
+                      )}
+                      {rec.website && (
+                        <a 
+                          href={rec.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className={styles.link}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          View Details
+                        </a>
+                      )}
+                      <div className={styles.selectionStatus}>
+                        {isItemSelected(rec.id) ? 'Selected ✓' : 'Click to select'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+        
+        {/* Render the ImageUrlInput outside of the item loop to prevent event bubbling issues */}
+        {showImageUrlInput && (
+          <ImageUrlInput
+            initialUrl={imageUrl}
+            onSave={(newUrl) => {
+              const rec = recommendationsState.find(r => r.id === showImageUrlInput);
+              if (rec) {
+                const tableName = rec.code.startsWith('6.3') ? 'severe_impairment_alter' : 'keyboard_recommendations';
+                handleUpdateImageUrl(rec.id, tableName, newUrl);
+              }
+            }}
+            onCancel={() => {
+              setShowImageUrlInput(null);
+            }}
+            sourceTable={recommendationsState.find(r => r.id === showImageUrlInput)?.code.startsWith('6.3') 
+              ? 'severe_impairment_alter' 
+              : recommendationsState.find(r => r.id === showImageUrlInput)?.code.startsWith('5') 
+                ? 'sensory_recommendation'
+                : 'keyboard_recommendations'
+            }
+          />
+        )}
+        
+        {updateMessage && (
+          <div className={styles.updateMessage}>
+            {updateMessage}
+          </div>
+        )}
+        
+        {isUpdating && <div className={styles.loadingIndicator}>Updating...</div>}
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 };
 
 export default RecommendationDetail; 

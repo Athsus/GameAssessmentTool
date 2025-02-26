@@ -579,4 +579,48 @@
 .exportButton:disabled {
   background-color: #6c757d;
   cursor: not-allowed;
+}
+
+.introduction {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f5f8ff;
+  border-radius: 8px;
+  border-left: 4px solid #0066cc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.introduction p {
+  margin: 0;
+  color: #333;
+  font-size: 16px;
+  flex: 1;
+  min-width: 250px;
+}
+
+.downloadButton {
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  margin-left: 15px;
+}
+
+.downloadButton:hover {
+  background-color: #004c99;
+}
+
+.downloadButton::before {
+  content: "↓";
+  margin-right: 8px;
+  font-weight: bold;
 } 

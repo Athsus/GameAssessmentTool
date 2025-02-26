@@ -2,47 +2,201 @@ import React, { useState } from 'react';
 import BackButton from './BackButton';
 import styles from './KeyboardAssessment.module.css';
 import RecommendationDetail from './RecommendationDetail';
-import { useRecommendations } from '../hooks/useRecommendations';
+import { supabase } from '../supabaseClient';
+import { Recommendation } from './RecommendationDetail';
 
 const KeyboardAssessment: React.FC = () => {
   const [isROMImpaired, setIsROMImpaired] = useState(false);
+  // 存储每个 checkbox 的选中状态
+  const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
+  // 存储活跃的 codes（用于查询）
+  const [activeCodes, setActiveCodes] = useState<Set<string>>(new Set());
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
 
-  // 先定义代码映射函数
-  const getKeyboardRecommendationCode = (checkboxId: string): string => {
-    const codeMap: { [key: string]: string } = {
-      'ergonomicKeyboards': '1.1',
-      'splitKeyboards': '1.2',
-      'gamingKeyboards': '1.3',
-      'compactKeyboards': '1.4',
-      'ergonomicMouse': '2.1',
-      'gamingMouse': '2.2',
-      'alternativeInput': '3.1',
-      'keyGuard': '3.2',
-      'trackballMouse': '3.3',
-      'largeKeyKeyboards': '3.4',
-      'lowForceKeyboards': '4.1',
-      'lowForceMouse': '4.2',
-      'brailleKeyboards': '5.1',
-      'headMouthStick': '6.1',
-      'wearableKeyboards': '6.2',
-      'headMouse': '6.3',
-      'eyeTracking': '6.4'
-    };
-    return codeMap[checkboxId] || '';
+  // 定义代码映射关系
+  const codeMapping: Record<string, { code: string, table: string }> = {
+    'ergonomicKeyboards': { code: '1.1', table: 'keyboard_recommendations' },
+    'splitKeyboards': { code: '1.2', table: 'keyboard_recommendations' },
+    'gamingKeyboards': { code: '1.3', table: 'keyboard_recommendations' },
+    'compactKeyboards': { code: '1.4', table: 'keyboard_recommendations' },
+    'ergonomicMouse': { code: '1.5', table: 'keyboard_recommendations' },
+    'gamingMouse': { code: '1.6', table: 'keyboard_recommendations' },
+    'alternativeInput': { code: '2.1', table: 'keyboard_recommendations' },
+    'keyGuard': { code: '2.2', table: 'keyboard_recommendations' },
+    'trackballMouse': { code: '2.3', table: 'keyboard_recommendations' },
+    'lowForceKeyboards': { code: '3.1', table: 'keyboard_recommendations' },
+    'lowForceMouse': { code: '3.2', table: 'keyboard_recommendations' },
+    'largeKeyKeyboards': { code: '4.1', table: 'keyboard_recommendations' },
+    'brailleKeyboards': { code: '4.2', table: 'keyboard_recommendations' },
+    'headMouthStick': { code: '5.1', table: 'keyboard_recommendations' },
+    'wearableKeyboards': { code: '5.2', table: 'keyboard_recommendations' },
+    'headMouse': { code: '5.3', table: 'keyboard_recommendations' },
+    'eyeTracking': { code: '6.3', table: 'severe_impairment_alter' }
   };
 
-  // 然后再使用这个函数
-  const {
-    recommendations,
-    selectedProduct,
-    handleCheckboxChange,
-    handleProductClick,
-    handleAddToCart,
-    handleCloseDetail
-  } = useRecommendations({ 
-    tableName: 'keyboard_recommendations',
-    getCode: getKeyboardRecommendationCode
-  });
+  // 获取推荐内容的函数
+  const fetchRecommendations = async () => {
+    try {
+      // 按表分组查询
+      const keyboardCodes = Array.from(activeCodes).filter(code => 
+        Object.values(codeMapping).some(mapping => 
+          mapping.code === code && mapping.table === 'keyboard_recommendations'
+        )
+      );
+      
+      const severeCodes = Array.from(activeCodes).filter(code => 
+        Object.values(codeMapping).some(mapping => 
+          mapping.code === code && mapping.table === 'severe_impairment_alter'
+        )
+      );
+
+      let newRecommendations: Recommendation[] = [];
+
+      // 查询keyboard_recommendations表
+      if (keyboardCodes.length > 0) {
+        const { data: keyboardData, error: keyboardError } = await supabase
+          .from('keyboard_recommendations')
+          .select('*')
+          .in('code', keyboardCodes);
+
+        if (keyboardError) throw keyboardError;
+        
+        if (keyboardData) {
+          const formattedData = keyboardData.map(item => ({
+            id: item.id,
+            code: item.code,
+            category: item.category || '',
+            subcategory: item.subcategory || '',
+            product: item.product || '',
+            website: item.website || '',
+            description: item.subcategory || null,
+            image_url: item.image_url || null
+          }));
+          
+          newRecommendations = [...newRecommendations, ...formattedData];
+        }
+      }
+
+      // 查询severe_impairment_alter表
+      if (severeCodes.length > 0) {
+        const { data: severeData, error: severeError } = await supabase
+          .from('severe_impairment_alter')
+          .select('*')
+          .in('code', severeCodes);
+
+        if (severeError) throw severeError;
+        
+        if (severeData) {
+          const formattedData = severeData.map(item => ({
+            id: item.id,
+            code: item.code,
+            category: item.category || '',
+            subcategory: item.subcategory || '',
+            product: item.product || '',
+            website: item.website || '',
+            description: item.subcategory || null,
+            image_url: item.image_url || null
+          }));
+          
+          newRecommendations = [...newRecommendations, ...formattedData];
+        }
+      }
+
+      // 关键修改：追加新推荐，而不是替换
+      setRecommendations(prevRecs => {
+        // 创建一个ID集合，用于检查重复
+        const existingIds = new Set(prevRecs.map(rec => rec.id));
+        
+        // 过滤掉已存在的推荐
+        const uniqueNewRecs = newRecommendations.filter(rec => !existingIds.has(rec.id));
+        
+        
+        // 返回合并后的数组
+        const result = [...prevRecs, ...uniqueNewRecs];
+        return result;
+      });
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
+  // 处理复选框点击
+  const handleCheckboxClick = (id: string) => {
+    // 检查是否正在取消选择
+    const isRemoving = checkedItems.has(id);
+    
+    // 更新选中状态
+    setCheckedItems(prev => {
+      const newChecked = new Set(prev);
+      if (isRemoving) {
+        newChecked.delete(id);
+      } else {
+        newChecked.add(id);
+      }
+      return newChecked;
+    });
+    
+    // 如果是取消选择，直接调用 handleRemoveCode
+    if (isRemoving) {
+      const mapping = codeMapping[id];
+      if (mapping) {
+        handleRemoveCode(mapping.code);
+      }
+    }
+  };
+
+  // 使用 useEffect 来管理 activeCodes
+  React.useEffect(() => {
+    // 收集所有被选中的 checkbox 对应的 codes
+    const newActiveCodes = new Set<string>();
+    checkedItems.forEach(checkboxId => {
+      const mapping = codeMapping[checkboxId];
+      if (mapping) {
+        newActiveCodes.add(mapping.code);
+      }
+    });
+    
+    setActiveCodes(newActiveCodes);
+  }, [checkedItems]);
+
+  // 检查选项是否被选中
+  const isOptionSelected = (id: string) => {
+    return checkedItems.has(id);
+  };
+
+  // 当活跃的 codes 改变时，重新获取数据
+  React.useEffect(() => {
+    if (activeCodes.size > 0) {
+      fetchRecommendations();
+    } else {
+      setRecommendations([]);
+    }
+  }, [activeCodes]);
+
+  // 从推荐面板移除一个 code
+  const handleRemoveCode = (code: string) => {
+    // 找到所有引用这个 code 的 checkbox
+    const relatedCheckboxes = Object.entries(codeMapping)
+      .filter(([_, mapping]) => mapping.code === code)
+      .map(([key]) => key);
+
+    // 取消选中所有相关的 checkbox
+    setCheckedItems(prev => {
+      const newChecked = new Set(prev);
+      relatedCheckboxes.forEach(id => newChecked.delete(id));
+      return newChecked;
+    });
+
+    // 从活跃 codes 中移除
+    setActiveCodes(prev => {
+      const newCodes = new Set(prev);
+      newCodes.delete(code);
+      return newCodes;
+    });
+
+    // 从推荐列表中移除相关代码的项目
+    setRecommendations(prevRecs => prevRecs.filter(rec => rec.code !== code));
+  };
 
   const handleROMChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsROMImpaired(event.target.value === 'impaired');
@@ -62,7 +216,21 @@ const KeyboardAssessment: React.FC = () => {
           <h3>Database: Keyboard and Mouse</h3>
           <ul>
             <li>For clients with severe motor impairments, proceed directly to the Database: 5 Severe Motor Impairment Keyboards section.</li>
-            <li>For clients with full function in one hand and limited or no function in the other hand, refer to the Databse: 1.3 One-hand Gamming Keyboards section.</li>
+            <li>
+              For clients with full function in one hand and limited or no function in the other hand, refer to the Database: {' '}
+              <span 
+                className={styles.clickableLink}
+                onClick={() => {
+                  // 检查是否已经选中
+                  if (!checkedItems.has('gamingKeyboards')) {
+                    // 如果没有选中，则添加到选中项并触发获取
+                    handleCheckboxClick('gamingKeyboards');
+                  }
+                }}
+              >
+                One-hand Gaming Keyboards
+              </span> section.
+            </li>
           </ul>
         </div>
 
@@ -178,27 +346,57 @@ const KeyboardAssessment: React.FC = () => {
 
                 <div className={styles.recommendations}>
                   <div className={styles.checkItem}>
-                    <input type="checkbox" id="ergonomicKeyboards" onChange={handleCheckboxChange} />
+                    <input 
+                      type="checkbox" 
+                      id="ergonomicKeyboards" 
+                      checked={isOptionSelected('ergonomicKeyboards')}
+                      onChange={() => handleCheckboxClick('ergonomicKeyboards')}
+                    />
                     <label htmlFor="ergonomicKeyboards">Ergonomic Keyboards</label>
                   </div>
                   <div className={styles.checkItem}>
-                    <input type="checkbox" id="splitKeyboards" onChange={handleCheckboxChange} />
+                    <input 
+                      type="checkbox" 
+                      id="splitKeyboards" 
+                      checked={isOptionSelected('splitKeyboards')}
+                      onChange={() => handleCheckboxClick('splitKeyboards')}
+                    />
                     <label htmlFor="splitKeyboards">Split Keyboards</label>
                   </div>
                   <div className={styles.checkItem}>
-                    <input type="checkbox" id="gamingKeyboards" onChange={handleCheckboxChange} />
+                    <input 
+                      type="checkbox" 
+                      id="gamingKeyboards" 
+                      checked={isOptionSelected('gamingKeyboards')}
+                      onChange={() => handleCheckboxClick('gamingKeyboards')}
+                    />
                     <label htmlFor="gamingKeyboards">Gaming Keyboards</label>
                   </div>
                   <div className={styles.checkItem}>
-                    <input type="checkbox" id="compactKeyboards" onChange={handleCheckboxChange} />
+                    <input 
+                      type="checkbox" 
+                      id="compactKeyboards" 
+                      checked={isOptionSelected('compactKeyboards')}
+                      onChange={() => handleCheckboxClick('compactKeyboards')}
+                    />
                     <label htmlFor="compactKeyboards">Compact Keyboards</label>
                   </div>
                   <div className={styles.checkItem}>
-                    <input type="checkbox" id="ergonomicMouse" onChange={handleCheckboxChange} />
+                    <input 
+                      type="checkbox" 
+                      id="ergonomicMouse" 
+                      checked={isOptionSelected('ergonomicMouse')}
+                      onChange={() => handleCheckboxClick('ergonomicMouse')}
+                    />
                     <label htmlFor="ergonomicMouse">Ergonomic Mouse</label>
                   </div>
                   <div className={styles.checkItem}>
-                    <input type="checkbox" id="gamingMouse" onChange={handleCheckboxChange} />
+                    <input 
+                      type="checkbox" 
+                      id="gamingMouse" 
+                      checked={isOptionSelected('gamingMouse')}
+                      onChange={() => handleCheckboxClick('gamingMouse')}
+                    />
                     <label htmlFor="gamingMouse">Gaming Mouse</label>
                   </div>
                 </div>
@@ -221,19 +419,39 @@ const KeyboardAssessment: React.FC = () => {
               </div>
               <div className={styles.recommendations}>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="alternativeInput" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="alternativeInput" 
+                    checked={isOptionSelected('alternativeInput')}
+                    onChange={() => handleCheckboxClick('alternativeInput')}
+                  />
                   <label htmlFor="alternativeInput">Alternative Input Devices</label>
                 </div>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="keyGuard" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="keyGuard" 
+                    checked={isOptionSelected('keyGuard')}
+                    onChange={() => handleCheckboxClick('keyGuard')}
+                  />
                   <label htmlFor="keyGuard">Key guard/Mouse Guard</label>
                 </div>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="trackballMouse" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="trackballMouse" 
+                    checked={isOptionSelected('trackballMouse')}
+                    onChange={() => handleCheckboxClick('trackballMouse')}
+                  />
                   <label htmlFor="trackballMouse">Trackball Mouse</label>
                 </div>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="largeKeyKeyboards" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="largeKeyKeyboards" 
+                    checked={isOptionSelected('largeKeyKeyboards')}
+                    onChange={() => handleCheckboxClick('largeKeyKeyboards')}
+                  />
                   <label htmlFor="largeKeyKeyboards">Large-Key Keyboards</label>
                 </div>
               </div>
@@ -254,11 +472,21 @@ const KeyboardAssessment: React.FC = () => {
               </div>
               <div className={styles.recommendations}>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="lowForceKeyboards" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="lowForceKeyboards" 
+                    checked={isOptionSelected('lowForceKeyboards')}
+                    onChange={() => handleCheckboxClick('lowForceKeyboards')}
+                  />
                   <label htmlFor="lowForceKeyboards">Low-Force Keyboards</label>
                 </div>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="lowForceMouse" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="lowForceMouse" 
+                    checked={isOptionSelected('lowForceMouse')}
+                    onChange={() => handleCheckboxClick('lowForceMouse')}
+                  />
                   <label htmlFor="lowForceMouse">Low-Force Mouse</label>
                 </div>
               </div>
@@ -279,11 +507,21 @@ const KeyboardAssessment: React.FC = () => {
               </div>
               <div className={styles.recommendations}>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="largeKeyKeyboardsVision" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="largeKeyKeyboards" 
+                    checked={isOptionSelected('largeKeyKeyboards')}
+                    onChange={() => handleCheckboxClick('largeKeyKeyboards')}
+                  />
                   <label htmlFor="largeKeyKeyboardsVision">Large-Key Keyboards</label>
                 </div>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="brailleKeyboards" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="brailleKeyboards" 
+                    checked={isOptionSelected('brailleKeyboards')}
+                    onChange={() => handleCheckboxClick('brailleKeyboards')}
+                  />
                   <label htmlFor="brailleKeyboards">Braille Keyboards</label>
                 </div>
               </div>
@@ -294,19 +532,39 @@ const KeyboardAssessment: React.FC = () => {
               <h3>5. Severe functional impairments</h3>
               <div className={styles.recommendations}>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="headMouthStick" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="headMouthStick" 
+                    checked={isOptionSelected('headMouthStick')}
+                    onChange={() => handleCheckboxClick('headMouthStick')}
+                  />
                   <label htmlFor="headMouthStick">Head/Mouth Stick Keyboard</label>
                 </div>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="wearableKeyboards" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="wearableKeyboards" 
+                    checked={isOptionSelected('wearableKeyboards')}
+                    onChange={() => handleCheckboxClick('wearableKeyboards')}
+                  />
                   <label htmlFor="wearableKeyboards">Wearable keyboards</label>
                 </div>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="headMouse" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="headMouse" 
+                    checked={isOptionSelected('headMouse')}
+                    onChange={() => handleCheckboxClick('headMouse')}
+                  />
                   <label htmlFor="headMouse">Head mouse</label>
                 </div>
                 <div className={styles.checkItem}>
-                  <input type="checkbox" id="eyeTracking" onChange={handleCheckboxChange} />
+                  <input 
+                    type="checkbox" 
+                    id="eyeTracking" 
+                    checked={isOptionSelected('eyeTracking')}
+                    onChange={() => handleCheckboxClick('eyeTracking')}
+                  />
                   <label htmlFor="eyeTracking">Eye-Tracking Mouse (Database: Severe Impairments alter -- 6.3 Eye Gaze)</label>
                 </div>
               </div>
@@ -329,42 +587,9 @@ const KeyboardAssessment: React.FC = () => {
 
       {/* 推荐产品部分 */}
       {recommendations.length > 0 && (
-        <div className={`${styles.recommendationsSection} ${
-          recommendations.length > 0 ? styles.visible : ''
-        }`}>
-          <h2>Recommended Products</h2>
-          <div className={styles.recommendationsList}>
-            {recommendations.map(product => (
-              <div 
-                key={product.id} 
-                className={styles.recommendationItem}
-                onClick={() => handleProductClick(product)}
-              >
-                {product.image_url && (
-                  <img src={product.image_url} alt={product.product} />
-                )}
-                <h3>{product.product}</h3>
-                <p>{product.price_range}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* 产品详情弹窗 */}
-      {selectedProduct && (
         <RecommendationDetail
-          product={{
-            id: selectedProduct.id,
-            code: selectedProduct.code,
-            name: selectedProduct.product,
-            description: selectedProduct.subcategory,
-            price_range: selectedProduct.price_range,
-            website: selectedProduct.website,
-            image_url: selectedProduct.image_url
-          }}
-          onClose={handleCloseDetail}
-          onAddToCart={() => handleAddToCart(selectedProduct)}
+          recommendations={recommendations}
+          onClose={handleRemoveCode}
         />
       )}
     </div>

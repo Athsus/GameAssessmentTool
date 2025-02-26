@@ -21,12 +21,27 @@ const InitialAssessment: React.FC = () => {
     }
   };
 
+  const handleDownloadTemplate = () => {
+    window.open("https://chdqrpgfqmxnelvmquew.supabase.co/storage/v1/object/public/fill_in_templates//Initial%20Assessment%20Template%20(holistic).pdf", "_blank");
+  };
+
   return (
     <div className={styles.container}>
       <BackButton />
       <div className={styles.header}>
         <h1 className={styles.title}>Initial Assessment Form</h1>
       </div>
+      
+      <div className={styles.introduction}>
+        <p>Complete this digital form or download our printable PDF template if you prefer to write by hand.</p>
+        <button 
+          className={styles.downloadButton} 
+          onClick={handleDownloadTemplate}
+        >
+          Download PDF Template
+        </button>
+      </div>
+      
       <ExportButton
         title="Initial Assessment"
         contentId="initial-assessment-content"

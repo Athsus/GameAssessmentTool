@@ -35,13 +35,31 @@ const SensoryAssessment: React.FC = () => {
   // 获取推荐内容的函数
   const fetchRecommendations = async (codes: string[]) => {
     try {
+      console.log('SensoryAssessment - fetching recommendations for codes:', codes);
       const { data, error } = await supabase
         .from('sensory_recommendations')
         .select('*')
         .in('code', codes);
 
       if (error) throw error;
-      setRecommendations(data || []);
+      
+      // 关键修改：追加新推荐，而不是替换
+      setRecommendations(prevRecs => {
+        // 创建一个ID集合，用于检查重复
+        const existingIds = new Set(prevRecs.map(rec => rec.id));
+        
+        // 过滤掉已存在的推荐
+        const uniqueNewRecs = (data || []).filter(rec => !existingIds.has(rec.id));
+        
+        console.log('SensoryAssessment - prevRecs:', prevRecs);
+        console.log('SensoryAssessment - data:', data);
+        console.log('SensoryAssessment - uniqueNewRecs:', uniqueNewRecs);
+        
+        // 返回合并后的数组
+        const result = [...prevRecs, ...uniqueNewRecs];
+        console.log('SensoryAssessment - result:', result);
+        return result;
+      });
     } catch (err) {
       console.error(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -51,15 +69,27 @@ const SensoryAssessment: React.FC = () => {
   const handleCheckboxClick = (category: string, subcategory: string) => {
     const checkboxId = `${category}-${subcategory}`;
     
+    // 检查是否正在取消选择
+    const isRemoving = checkedItems.has(checkboxId);
+    
+    // 更新选中状态
     setCheckedItems(prev => {
       const newChecked = new Set(prev);
-      if (newChecked.has(checkboxId)) {
+      if (isRemoving) {
         newChecked.delete(checkboxId);
       } else {
         newChecked.add(checkboxId);
       }
       return newChecked;
     });
+    
+    // 如果是取消选择，直接调用 handleRemoveCode
+    if (isRemoving) {
+      const code = codeMapping[checkboxId];
+      if (code) {
+        handleRemoveCode(code);
+      }
+    }
   };
 
   // 使用 useEffect 来管理 activeCodes
@@ -84,6 +114,7 @@ const SensoryAssessment: React.FC = () => {
 
   // 当活跃的 codes 改变时，重新获取数据
   useEffect(() => {
+    console.log('SensoryAssessment - activeCodes changed:', Array.from(activeCodes));
     if (activeCodes.size > 0) {
       fetchRecommendations(Array.from(activeCodes));
     } else {
@@ -111,6 +142,9 @@ const SensoryAssessment: React.FC = () => {
       newCodes.delete(code);
       return newCodes;
     });
+
+    // 从推荐列表中移除相关代码的项目
+    setRecommendations(prevRecs => prevRecs.filter(rec => rec.code !== code));
   };
 
   return (
@@ -120,6 +154,10 @@ const SensoryAssessment: React.FC = () => {
       <p className={styles.description}>
         Based on the assessment results, please evaluate the suitable functional requirements and corresponding
         recommendations for each functional limitation.
+      </p>
+
+      <p className={styles.databaseDescription}>
+        Database: Sensory Accessibility Assessment
       </p>
 
       <div className={styles.assessmentTable}>

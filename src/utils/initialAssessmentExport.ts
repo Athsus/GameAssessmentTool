@@ -1,176 +1,398 @@
 import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
+import { formatTableData } from './pdfUtils';
 
-interface ExportToPDFOptions {
+interface ExportOptions {
   title: string;
   logoSrc: string;
   contentId: string;
   filename: string;
 }
 
-export const exportInitialAssessment = async (options: ExportToPDFOptions): Promise<void> => {
-  const { title, logoSrc, contentId, filename } = options;
+export const exportInitialAssessment = async (options: ExportOptions): Promise<void> => {
+  const { title, contentId, filename } = options;
   const content = document.getElementById(contentId);
   
   if (!content) return;
 
+  // Create PDF instance
   const pdf = new jsPDF({
     unit: 'pt',
     format: 'a4'
   });
 
+  // Set basic parameters
   const pageWidth = pdf.internal.pageSize.width;
+  const pageHeight = pdf.internal.pageSize.height;
   const margin = 40;
   let yPosition = margin;
 
-  // 添加标题
+  // Add title first (without waiting for logo)
   pdf.setFontSize(24);
-  pdf.text(title, margin, yPosition);
-  yPosition += 50;
+  pdf.setTextColor(0, 51, 102); // Dark blue color for title
+  pdf.text(title, margin, yPosition + 15);
+  yPosition += 60;
 
-  // 等待 logo 加载完成
-  try {
-    await new Promise((resolve, reject) => {
-      const img = new Image();
-      img.onload = () => {
-        try {
-          pdf.addImage(img, 'PNG', pageWidth - 100, margin, 60, 60);
-          resolve(null);
-        } catch (error) {
-          reject(error);
-        }
-      };
-      img.onerror = reject;
-      img.src = logoSrc;
-    });
-  } catch (error) {
-    console.warn('Logo loading failed:', error);
+  // Draw a horizontal line
+  pdf.setDrawColor(0, 102, 204);
+  pdf.setLineWidth(1);
+  pdf.line(margin, yPosition - 20, pageWidth - margin, yPosition - 20);
+
+  // Process basic information section
+  pdf.setFontSize(16);
+  pdf.setTextColor(0, 51, 102);
+  pdf.text("Basic Information", margin, yPosition);
+  yPosition += 25;
+
+  pdf.setFontSize(11);
+  pdf.setTextColor(0, 0, 0);
+
+  // Extract form fields
+  const formGroups = content.querySelectorAll('.formGroup');
+
+  // Group related form fields for better formatting
+  const basicFields = [
+    'Name', 'Address', 'Phone', 'Date of Birth', 'NDIS Number', 
+    'NDIS Plan Dates', 'Assessed By', 'Date', 'People Consulted'
+  ];
+  
+  const detailFields = [
+    'Diagnoses', 'Background', 'Mobility', 'Transfers', 
+    'Living Situation', 'Funding Related Goals', 'Current Concerns',
+    'Strengths/Likes', 'Supports In Use/Available'
+  ];
+
+  // Process basic fields in a grid format (2 columns)
+  pdf.setFontSize(10);
+  const columnWidth = (pageWidth - (margin * 2)) / 2 - 10;
+  let columnYPosition = yPosition;
+  let column = 0;
+
+  // Improved data extraction for form fields
+  formGroups.forEach((group) => {
+    const labelElement = group.querySelector('label');
+    if (!labelElement) return;
+    
+    const label = labelElement.textContent?.trim() || '';
+    if (!basicFields.includes(label)) return;
+    
+    // Get the input or textarea element
+    const input = group.querySelector('input, textarea');
+    let value = '(Not provided)';
+
+    if (input && typeof input === 'object') {
+      if (input instanceof HTMLTextAreaElement || input instanceof HTMLInputElement) {
+        value = input.value || '(Not provided)';
+      }
+    }
+
+    // If no direct input found, try to find it by ID
+    if (!input && labelElement.htmlFor) {
+      const inputById = document.getElementById(labelElement.htmlFor);
+      if (inputById instanceof HTMLInputElement || inputById instanceof HTMLTextAreaElement) {
+        value = inputById.value || '(Not provided)';
+      }
+    }
+
+    const labelXPosition = margin + (column * (columnWidth + 20));
+    
+    pdf.setFont("helvetica", "bold");
+    pdf.text(label + ":", labelXPosition, columnYPosition);
+    
+    pdf.setFont("helvetica", "normal");
+    pdf.text(value, labelXPosition, columnYPosition + 15);
+    
+    columnYPosition += 35;
+    
+    // Switch to second column or new page if needed
+    if (columnYPosition > pageHeight - margin) {
+      if (column === 0) {
+        column = 1;
+        columnYPosition = yPosition;
+      } else {
+        pdf.addPage();
+        column = 0;
+        columnYPosition = margin;
+        yPosition = margin;
+      }
+    }
+  });
+
+  // Update the yPosition to the maximum of both columns
+  yPosition = Math.max(columnYPosition, yPosition);
+  yPosition += 20;
+  
+  // Check if we need a new page for the detailed sections
+  if (yPosition > pageHeight - 150) {
+    pdf.addPage();
+    yPosition = margin;
   }
 
-  // 设置正文字体和大小
-  pdf.setFontSize(12);
+  // Section header for detailed fields
+  pdf.setFontSize(16);
+  pdf.setTextColor(0, 51, 102);
+  pdf.text("Clinical Information", margin, yPosition);
+  yPosition += 25;
+  
+  pdf.setFontSize(10);
+  pdf.setTextColor(0, 0, 0);
 
-  // 获取所有表单组
-  const formGroups = content.querySelectorAll('.formGroup, .form-group');
+  // Process detail fields (full width) with improved data extraction
   formGroups.forEach((group) => {
-    const label = group.querySelector('label')?.textContent?.replace('*', '').trim();
-    if (!label) return;
+    const labelElement = group.querySelector('label');
+    if (!labelElement) return;
+    
+    const label = labelElement.textContent?.trim() || '';
+    if (!detailFields.includes(label)) return;
+    
+    // Try to find the textarea directly
+    let input = group.querySelector('textarea');
+    
+    // If not found, try to find by ID
+    if (!input && labelElement.htmlFor) {
+      input = document.getElementById(labelElement.htmlFor) as HTMLTextAreaElement;
+    }
+    
+    // If still not found, look for any input in the group
+    if (!input) {
+      input = group.querySelector('input[type="text"]');
+    }
+    
+    let value = '(Not provided)';
+    // if (input && typeof input === 'object') {
+    //   if (input instanceof HTMLTextAreaElement || input instanceof HTMLInputElement) {
+    //     value = input.value || '(Not provided)';
+    //   }
+    // }
 
-    // 检查是否需要新页面
-    if (yPosition > pdf.internal.pageSize.height - 60) {
+    // Check if we need a new page
+    if (yPosition + 60 > pageHeight - margin) {
       pdf.addPage();
       yPosition = margin;
     }
 
-    // 添加标签
     pdf.setFont("helvetica", "bold");
-    pdf.text(label, margin, yPosition);
-    yPosition += 20;
-
-    // 获取输入值
-    const input = group.querySelector('input, textarea') as HTMLInputElement | HTMLTextAreaElement;
-    if (input) {
-      pdf.setFont("helvetica", "normal");
-      let value = '';
-
-      if (input instanceof HTMLInputElement) {
-        if (input.type === 'checkbox') {
-          value = input.checked ? 'Yes' : 'No';
-        } else if (input.type === 'radio') {
-          const checkedRadio = group.querySelector('input[type="radio"]:checked') as HTMLInputElement;
-          value = checkedRadio ? checkedRadio.value : '';
-        } else {
-          value = input.value || '';
-        }
-      } else {
-        value = input.value || '';
-      }
-
-      // 处理长文本
-      if (value.length > 60 || input instanceof HTMLTextAreaElement) {
-        const maxWidth = pageWidth - (margin * 2);
-        const lines = pdf.splitTextToSize(value, maxWidth);
-        pdf.text(lines, margin, yPosition);
-        yPosition += lines.length * 15 + 20;
-      } else {
-        pdf.text(value, margin + 10, yPosition);
-        yPosition += 30;
-      }
-    }
-
-    // 处理设备选择部分
-    const deviceInputs = group.querySelectorAll('input[type="checkbox"]');
-    if (deviceInputs.length > 0) {
-      deviceInputs.forEach((deviceInput: Element) => {
-        const input = deviceInput as HTMLInputElement;
-        const deviceLabel = input.parentElement?.textContent?.trim() || '';
-        if (deviceLabel && input.checked) {
-          yPosition += 20;
-          pdf.text(`- ${deviceLabel}`, margin + 20, yPosition);
-        }
-      });
-      yPosition += 20;
-    }
+    pdf.text(label + ":", margin, yPosition);
+    
+    pdf.setFont("helvetica", "normal");
+    const splitText = pdf.splitTextToSize(value, pageWidth - (margin * 2));
+    pdf.text(splitText, margin, yPosition + 15);
+    
+    yPosition += 25 + (splitText.length * 12);
   });
 
-  // 处理 AT Used 部分
-  const atSection = content.querySelector('#at-used-section');
-  if (atSection) {
+  // Process AT Used section
+  const atUsedSection = content.querySelector('[data-section="at-used"]');
+  if (atUsedSection) {
+    // Check if we need a new page
+    if (yPosition + 120 > pageHeight - margin) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+    
+    pdf.setFontSize(14);
+    pdf.setTextColor(0, 51, 102);
+    pdf.text("Assistive Technology Used", margin, yPosition);
     yPosition += 20;
-    pdf.setFont("helvetica", "bold");
-    pdf.text("AT Used (Consider Model, Experience)", margin, yPosition);
-    yPosition += 20;
-
-    const devices = [
-      { selector: '#tablet', label: 'Tablet' },
-      { selector: '#computer', label: 'Computer' },
-      { selector: '#gaming-consoles', label: 'Gaming Consoles' }
-    ];
-
-    devices.forEach(device => {
-      const input = atSection.querySelector(device.selector) as HTMLInputElement;
-      if (input?.checked) {
-        pdf.setFont("helvetica", "normal");
-        pdf.text(`- ${device.label}`, margin + 20, yPosition);
-        yPosition += 20;
+    
+    pdf.setFontSize(10);
+    pdf.setTextColor(0, 0, 0);
+    
+    // Create a table for AT Used
+    const atUsedData: any = [];
+    const checkboxes = atUsedSection.querySelectorAll('input[type="checkbox"]');
+    
+    Array.from(checkboxes).forEach((checkbox) => {
+      if (checkbox instanceof HTMLInputElement) {
+        const checkboxLabel = checkbox.parentElement?.textContent?.trim() || '';
+        const modelInput = checkbox.parentElement?.nextElementSibling as HTMLInputElement;
+        const model = modelInput?.value || '';
+        
+        if (checkbox.checked) {
+          atUsedData.push([checkboxLabel, model]);
+        }
       }
     });
-
-    // 处理 Other Devices
-    const otherDevices = atSection.querySelector('#other-devices') as HTMLTextAreaElement;
-    if (otherDevices?.value) {
-      pdf.text('Other Devices:', margin + 20, yPosition);
-      yPosition += 20;
-      const lines = pdf.splitTextToSize(otherDevices.value, pageWidth - (margin * 3));
-      pdf.text(lines, margin + 40, yPosition);
-      yPosition += lines.length * 15 + 20;
+    
+    if (atUsedData.length > 0) {
+      pdf.autoTable({
+        head: [['Device', 'Model']],
+        body: atUsedData,
+        startY: yPosition,
+        margin: { left: margin },
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [0, 102, 204] }
+      });
+      
+      yPosition = (pdf as any).lastAutoTable.finalY + 15;
+    } else {
+      pdf.text("No assistive technology devices selected", margin, yPosition);
+      yPosition += 15;
     }
   }
 
-  // 处理 Access Methods 部分
-  const accessSection = content.querySelector('#access-methods-section');
-  if (accessSection) {
+  // Process Gaming History
+  const gamingSection = content.querySelector('[data-section="gaming-history"]');
+  if (gamingSection) {
+    // Check if we need a new page
+    if (yPosition + 120 > pageHeight - margin) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+    
+    pdf.setFontSize(14);
+    pdf.setTextColor(0, 51, 102);
+    pdf.text("Gaming Experience", margin, yPosition);
     yPosition += 20;
+    
+    pdf.setFontSize(10);
+    pdf.setTextColor(0, 0, 0);
+    
+    // Extract gaming history data
+    const consoles: string[] = [];
+    const checkboxes = gamingSection.querySelectorAll('input[type="checkbox"]');
+    
+    Array.from(checkboxes).forEach((checkbox) => {
+      if (checkbox instanceof HTMLInputElement && checkbox.checked) {
+        const label = checkbox.parentElement?.textContent?.trim() || '';
+        consoles.push(label);
+      }
+    });
+    
+    // Controller and games info - using standard DOM methods
+    let controllerText = 'Not specified';
+    let gamesText = 'Not specified';
+    
+    // Find all labels in the gaming section
+    const labels = gamingSection.querySelectorAll('label');
+    
+    // Find the controller and games labels
+    Array.from(labels).forEach(label => {
+      const labelText = label.textContent?.trim() || '';
+      
+      if (labelText.includes('Controller:')) {
+        // Find the textarea that follows this label
+        let nextElement = label.nextElementSibling;
+        while (nextElement) {
+          if (nextElement instanceof HTMLTextAreaElement) {
+            controllerText = nextElement.value || 'Not specified';
+            break;
+          }
+          nextElement = nextElement.nextElementSibling;
+        }
+      }
+      
+      if (labelText.includes('Games:')) {
+        // Find the textarea that follows this label
+        let nextElement = label.nextElementSibling;
+        while (nextElement) {
+          if (nextElement instanceof HTMLTextAreaElement) {
+            gamesText = nextElement.value || 'Not specified';
+            break;
+          }
+          nextElement = nextElement.nextElementSibling;
+        }
+      }
+    });
+    
+    const consoleText = consoles.length > 0 ? consoles.join(', ') : 'None specified';
+    
     pdf.setFont("helvetica", "bold");
-    pdf.text("Access Methods", margin, yPosition);
+    pdf.text("Previous Gaming Experience:", margin, yPosition);
+    yPosition += 15;
+    
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Consoles: ${consoleText}`, margin + 10, yPosition);
+    yPosition += 15;
+    
+    pdf.text(`Controller: ${controllerText}`, margin + 10, yPosition);
+    yPosition += 15;
+    
+    const gamesSplit = pdf.splitTextToSize(`Games: ${gamesText}`, pageWidth - (margin * 2) - 10);
+    pdf.text(gamesSplit, margin + 10, yPosition);
+    yPosition += gamesSplit.length * 12 + 10;
+  }
+
+  // Add a section for functional limitations
+  const functionalSection = document.querySelector('.assessmentTable');
+  if (functionalSection) {
+    if (yPosition + 120 > pageHeight - margin) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+    
+    pdf.setFontSize(14);
+    pdf.setTextColor(0, 51, 102);
+    pdf.text("Functional Limitations", margin, yPosition);
     yPosition += 20;
+    
+    // Extract table data using the formatTableData utility
+    const tableData = formatTableData(functionalSection);
+    
+    if (tableData.rows.length > 0) {
+      pdf.autoTable({
+        head: [tableData.headers],
+        body: tableData.rows,
+        startY: yPosition,
+        margin: { left: margin },
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [0, 102, 204] }
+      });
+      
+      yPosition = (pdf as any).lastAutoTable.finalY + 15;
+    }
+  }
 
-    const methods = [
-      { selector: '#physical-access', label: 'Physical Access' },
-      { selector: '#voice-control', label: 'Voice Control' },
-      { selector: '#sip-and-puff', label: 'Sip-And-Puff Systems' },
-      { selector: '#eye-gaze', label: 'Eye Gaze' }
-    ];
-
-    methods.forEach(method => {
-      const input = accessSection.querySelector(method.selector) as HTMLInputElement;
-      if (input?.checked) {
+  // Add recommendations section
+  const recommendationTable = document.querySelector('.recommendationTable');
+  if (recommendationTable) {
+    if (yPosition + 120 > pageHeight - margin) {
+      pdf.addPage();
+      yPosition = margin;
+    }
+    
+    pdf.setFontSize(14);
+    pdf.setTextColor(0, 51, 102);
+    pdf.text("Recommendations", margin, yPosition);
+    yPosition += 20;
+    
+    // Extract recommendations data
+    const rows = recommendationTable.querySelectorAll('tr');
+    
+    Array.from(rows).forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length >= 2) {
+        const label = cells[0].textContent?.trim() || '';
+        let value = '(Not provided)';
+        
+        // Try to get value from textarea or input
+        const input = cells[1].querySelector('textarea, input');
+        if (input && typeof input === 'object') {
+          if (input instanceof HTMLTextAreaElement || input instanceof HTMLInputElement) {
+            value = input.value || '(Not provided)';
+          }
+        } else {
+          value = cells[1].textContent?.trim() || '(Not provided)';
+        }
+        
+        // Check if we need a new page
+        if (yPosition + 40 > pageHeight - margin) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+        
+        pdf.setFont("helvetica", "bold");
+        pdf.text(label + ":", margin, yPosition);
+        yPosition += 15;
+        
         pdf.setFont("helvetica", "normal");
-        pdf.text(`- ${method.label}`, margin + 20, yPosition);
-        yPosition += 20;
+        const splitText = pdf.splitTextToSize(value, pageWidth - (margin * 2) - 10);
+        pdf.text(splitText, margin + 10, yPosition);
+        yPosition += splitText.length * 12 + 10;
       }
     });
   }
 
-  // 保存 PDF
+  // Save PDF
   pdf.save(filename);
 }; 

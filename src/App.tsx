@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import InitialAssessment from './components/InitialAssessment';
@@ -10,6 +9,7 @@ import PhysicalLimitation from './components/PhysicalLimitation';
 import styles from './components/App.module.css';
 import { CartProvider } from './contexts/CartContext';
 import Cart from './components/Cart';
+import DatabaseManagement from './components/DatabaseManagement';
 
 const App = () => {
   return (
@@ -23,6 +23,7 @@ const App = () => {
           <Route path="/keyboard-assessment" element={<KeyboardAssessment />} />
           <Route path="/physical-limitation" element={<PhysicalLimitation />} />
           <Route path="/gefpt" element={<GEFPT />} />
+          <Route path="/database-management" element={<DatabaseManagement />} />
         </Routes>
       </div>
       <Cart />

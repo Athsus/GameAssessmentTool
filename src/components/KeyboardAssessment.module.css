@@ -211,4 +211,14 @@
 .recommendationItem p {
   color: #666;
   font-size: 0.9rem;
+}
+
+.clickableLink {
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.clickableLink:hover {
+  color: #0056b3;
 } 

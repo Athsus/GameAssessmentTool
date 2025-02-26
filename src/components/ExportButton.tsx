@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import styles from './ExportButton.module.css';
 import { exportToPDF } from '../utils/pdfExport';
 import { exportInitialAssessment } from '../utils/initialAssessmentExport';
-import logo from '../assets/stfav.ico';
 
 interface ExportButtonProps {
   title: string;
@@ -25,18 +24,21 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       if (formType === 'initial') {
         await exportInitialAssessment({
           title,
-          logoSrc: logo,
+          logoSrc: '', // Remove logo to avoid PNG errors
           contentId,
           filename,
         });
       } else {
         await exportToPDF({
           title,
-          logoSrc: logo,
+          logoSrc: '', // Remove logo to avoid PNG errors
           contentId,
           filename,
         });
       }
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('There was an error exporting the PDF. Please try again.');
     } finally {
       setIsExporting(false);
     }
