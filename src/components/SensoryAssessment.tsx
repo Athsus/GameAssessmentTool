@@ -4,6 +4,7 @@ import styles from './SensoryAssessment.module.css';
 import RecommendationDetail from './RecommendationDetail';
 import { supabase } from '../supabaseClient';
 import { Recommendation } from './RecommendationDetail';
+import ExportButton from './ExportButton';
 
 const SensoryAssessment: React.FC = () => {
   // 存储每个 checkbox 的选中状态
@@ -12,53 +13,109 @@ const SensoryAssessment: React.FC = () => {
   const [activeCodes, setActiveCodes] = useState<Set<string>>(new Set());
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
 
-  // 定义代码映射关系
-  const codeMapping: Record<string, string> = {
-    'low_vision-text': '1.1.1',
-    'low_vision-color': '1.1.2',
-    'low_vision-magnifier': '1.1.3',
-    'low_vision-night_mode': '1.1.4',
-    'low_vision-narrator': '1.1.5',
-    'low_vision-copilot': '1.1.6',
-    'low_vision-haptic_feedback': '1.1.7',
-    'low_vision-audio_driven': '1.1.8',
-    'low_vision-text_to_speech': '1.1.9',
-    'cvd-color_blind_modes': '1.2.1',
-    'cvd-high_contrast': '1.2.2',
-    'tactile-pressure_sensitivity': '3.3.1',
-    'tactile-adaptive_controller': '3.3.1',
-    'tactile-designed_lab': '3.3.2',
-    'physical-low_force_buttons': '2.1.2',
-    'adaptive_switches-sensory': 'AS-1',
+  // 修改代码映射关系，为 adaptive_switches 添加 category 信息
+  const codeMapping: Record<string, { code: string, table: string, category?: string }> = {
+    'low_vision-text': { code: '1.1.1', table: 'sensory_recommendations' },
+    'low_vision-color': { code: '1.1.2', table: 'sensory_recommendations' },
+    'low_vision-magnifier': { code: '1.1.3', table: 'sensory_recommendations' },
+    'low_vision-night_mode': { code: '1.1.4', table: 'sensory_recommendations' },
+    'low_vision-narrator': { code: '1.1.5', table: 'sensory_recommendations' },
+    'low_vision-copilot': { code: '1.1.6', table: 'sensory_recommendations' },
+    'low_vision-haptic_feedback': { code: '1.1.7', table: 'sensory_recommendations' },
+    'low_vision-audio_driven': { code: '1.1.8', table: 'sensory_recommendations' },
+    'low_vision-text_to_speech': { code: '1.1.9', table: 'sensory_recommendations' },
+    'cvd-color_blind_modes': { code: '1.2.1', table: 'sensory_recommendations' },
+    'cvd-high_contrast': { code: '1.2.2', table: 'sensory_recommendations' },
+    'tactile-pressure_sensitivity': { code: '3.3.1', table: 'sensory_recommendations' },
+    'tactile-adaptive_controller': { code: '3.3.1', table: 'sensory_recommendations' },
+    'tactile-designed_lab': { code: '3.3.2', table: 'sensory_recommendations' },
+    'physical-low_force_buttons': { code: '2.1.2', table: 'physical_recommendations' }, // 注意这里使用 physical_recommendations
+    'adaptive_switches-sensory': { 
+      code: 'AS', 
+      table: 'adaptive_switches',
+      category: 'I. Sensory'  // 添加 category 信息
+    },
+    'audio-hearing_accessibility': { code: '2.1', table: 'sensory_recommendations' },
+    'audio-visual_indicators': { code: '2.2', table: 'sensory_recommendations' },
   };
 
   // 获取推荐内容的函数
   const fetchRecommendations = async (codes: string[]) => {
     try {
-      console.log('SensoryAssessment - fetching recommendations for codes:', codes);
-      const { data, error } = await supabase
-        .from('sensory_recommendations')
-        .select('*')
-        .in('code', codes);
-
-      if (error) throw error;
+      // 按表分组查询
+      const physicalCodes = codes.filter(code => 
+        Object.values(codeMapping).some(mapping => 
+          mapping.code === code && mapping.table === 'physical_recommendations'
+        )
+      );
       
-      // 关键修改：追加新推荐，而不是替换
+      const sensoryCodes = codes.filter(code => 
+        Object.values(codeMapping).some(mapping => 
+          mapping.code === code && mapping.table === 'sensory_recommendations'
+        )
+      );
+      
+      const adaptiveSwitchesCodes = codes.filter(code => 
+        Object.values(codeMapping).some(mapping => 
+          mapping.code === code && mapping.table === 'adaptive_switches'
+        )
+      );
+
+      let newRecommendations: Recommendation[] = [];
+
+      // 查询 sensory_recommendations 表
+      if (sensoryCodes.length > 0) {
+        const { data: sensoryData, error: sensoryError } = await supabase
+          .from('sensory_recommendations')
+          .select('*')
+          .in('code', sensoryCodes);
+
+        if (sensoryError) throw sensoryError;
+        if (sensoryData) {
+          newRecommendations = [...newRecommendations, ...sensoryData];
+        }
+      }
+
+      // 查询 physical_recommendations 表
+      if (physicalCodes.length > 0) {
+        const { data: physicalData, error: physicalError } = await supabase
+          .from('physical_recommendations')
+          .select('*')
+          .in('code', physicalCodes);
+
+        if (physicalError) throw physicalError;
+        if (physicalData) {
+          newRecommendations = [...newRecommendations, ...physicalData];
+        }
+      }
+
+      // 查询 adaptive_switches 表
+      if (adaptiveSwitchesCodes.length > 0) {
+        const { data: switchesData, error: switchesError } = await supabase
+          .from('adaptive_switches')
+          .select('*')
+          .eq('category', 'I. Sensory'); // 使用 category 进行查询，而不是 code
+
+        if (switchesError) throw switchesError;
+        if (switchesData) {
+          const formattedData = switchesData.map(item => ({
+            id: item.id,
+            code: 'AS',  // 使用固定的 code
+            category: item.category || '',
+            subcategory: item.subcategory || '',
+            product: item.product || '',
+            website: item.website || '',
+            description: item.description || null,
+            image_url: item.image_url || null
+          }));
+          newRecommendations = [...newRecommendations, ...formattedData];
+        }
+      }
+
       setRecommendations(prevRecs => {
-        // 创建一个ID集合，用于检查重复
         const existingIds = new Set(prevRecs.map(rec => rec.id));
-        
-        // 过滤掉已存在的推荐
-        const uniqueNewRecs = (data || []).filter(rec => !existingIds.has(rec.id));
-        
-        console.log('SensoryAssessment - prevRecs:', prevRecs);
-        console.log('SensoryAssessment - data:', data);
-        console.log('SensoryAssessment - uniqueNewRecs:', uniqueNewRecs);
-        
-        // 返回合并后的数组
-        const result = [...prevRecs, ...uniqueNewRecs];
-        console.log('SensoryAssessment - result:', result);
-        return result;
+        const uniqueNewRecs = newRecommendations.filter(rec => !existingIds.has(rec.id));
+        return [...prevRecs, ...uniqueNewRecs];
       });
     } catch (err) {
       console.error(err instanceof Error ? err.message : 'An error occurred');
@@ -66,28 +123,27 @@ const SensoryAssessment: React.FC = () => {
   };
 
   // 处理复选框点击 - 只处理 checkbox 状态
-  const handleCheckboxClick = (category: string, subcategory: string) => {
-    const checkboxId = `${category}-${subcategory}`;
+  const handleCheckboxClick = (category: string, feature: string, labelText?: string | null) => {
+    const id = `${category}-${feature}`;
+    const isSelected = isOptionSelected(category, feature);
     
-    // 检查是否正在取消选择
-    const isRemoving = checkedItems.has(checkboxId);
-    
-    // 更新选中状态
     setCheckedItems(prev => {
       const newChecked = new Set(prev);
-      if (isRemoving) {
-        newChecked.delete(checkboxId);
+      if (isSelected) {
+        newChecked.delete(id);
       } else {
-        newChecked.add(checkboxId);
+        newChecked.add(id);
       }
       return newChecked;
     });
     
-    // 如果是取消选择，直接调用 handleRemoveCode
-    if (isRemoving) {
-      const code = codeMapping[checkboxId];
-      if (code) {
-        handleRemoveCode(code);
+    // 确保 labelText 不为 null 或 undefined
+    if (labelText && !isSelected) {
+      const mapping = codeMapping[id];
+      if (mapping) {
+        const labelMap = JSON.parse(sessionStorage.getItem('checkboxLabels') || '{}');
+        labelMap[mapping.code] = labelText;
+        sessionStorage.setItem('checkboxLabels', JSON.stringify(labelMap));
       }
     }
   };
@@ -97,7 +153,7 @@ const SensoryAssessment: React.FC = () => {
     // 收集所有被选中的 checkbox 对应的 codes
     const newActiveCodes = new Set<string>();
     checkedItems.forEach(checkboxId => {
-      const code = codeMapping[checkboxId];
+      const code = codeMapping[checkboxId]?.code;
       if (code) {
         newActiveCodes.add(code);
       }
@@ -107,8 +163,8 @@ const SensoryAssessment: React.FC = () => {
   }, [checkedItems]);
 
   // 检查选项是否被选中
-  const isOptionSelected = (category: string, subcategory: string) => {
-    const checkboxId = `${category}-${subcategory}`;
+  const isOptionSelected = (category: string, feature: string) => {
+    const checkboxId = `${category}-${feature}`;
     return checkedItems.has(checkboxId);
   };
 
@@ -126,7 +182,7 @@ const SensoryAssessment: React.FC = () => {
   const handleRemoveCode = (code: string) => {
     // 找到所有引用这个 code 的 checkbox
     const relatedCheckboxes = Object.entries(codeMapping)
-      .filter(([_, value]) => value === code)
+      .filter(([_, value]) => value.code === code)
       .map(([key]) => key);
 
     // 取消选中所有相关的 checkbox
@@ -148,8 +204,16 @@ const SensoryAssessment: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <BackButton />
+    <div className={styles.container} id="sensory-assessment-content">
+      <div className={styles.header}>
+        <BackButton />
+        <ExportButton 
+          title="Sensory Assessment"
+          contentId="sensory-assessment-content"
+          formType="sensory"
+        />
+      </div>
+      
       <h1 className={styles.title}>Sensory Accessibility Assessment</h1>
       <p className={styles.description}>
         Based on the assessment results, please evaluate the suitable functional requirements and corresponding
@@ -172,7 +236,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="text"
                   checked={isOptionSelected('low_vision', 'text')}
-                  onChange={() => handleCheckboxClick('low_vision', 'text')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'text', label);
+                  }}
                 />
                 <label htmlFor="text">Text: Ensure text is clear and provides context to reduce cognitive load.</label>
               </div>
@@ -182,7 +249,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="colour"
                   checked={isOptionSelected('low_vision', 'color')}
-                  onChange={() => handleCheckboxClick('low_vision', 'color')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'color', label);
+                  }}
                 />
                 <label htmlFor="colour">Colour: Use colour to emphasize information and provide additional context.</label>
               </div>
@@ -192,7 +262,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="magnifier"
                   checked={isOptionSelected('low_vision', 'magnifier')}
-                  onChange={() => handleCheckboxClick('low_vision', 'magnifier')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'magnifier', label);
+                  }}
                 />
                 <label htmlFor="magnifier">Magnifier: Allows players to enlarge elements on the screen using a controller or keyboard.</label>
               </div>
@@ -202,7 +275,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="nightMode"
                   checked={isOptionSelected('low_vision', 'night_mode')}
-                  onChange={() => handleCheckboxClick('low_vision', 'night_mode')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'night_mode', label);
+                  }}
                 />
                 <label htmlFor="nightMode">Night Mode: Adjusts screen brightness and colour for easier viewing at night. (helpful for people who are photosensitive)</label>
               </div>
@@ -212,7 +288,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="narrator"
                   checked={isOptionSelected('low_vision', 'narrator')}
-                  onChange={() => handleCheckboxClick('low_vision', 'narrator')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'narrator', label);
+                  }}
                 />
                 <label htmlFor="narrator">Narrator: A screen reader verbalizes text, buttons, and other on-screen elements.</label>
               </div>
@@ -222,7 +301,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="copilot"
                   checked={isOptionSelected('low_vision', 'copilot')}
-                  onChange={() => handleCheckboxClick('low_vision', 'copilot')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'copilot', label);
+                  }}
                 />
                 <label htmlFor="copilot">Copilot: Two controllers can work together as one for more accessible gameplay.</label>
               </div>
@@ -232,7 +314,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="hapticFeedback"
                   checked={isOptionSelected('low_vision', 'haptic_feedback')}
-                  onChange={() => handleCheckboxClick('low_vision', 'haptic_feedback')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'haptic_feedback', label);
+                  }}
                 />
                 <label htmlFor="hapticFeedback">Haptic Feedback: Uses vibration and tactile feedback to convey in-game actions and events</label>
               </div>
@@ -242,7 +327,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="audioDriven"
                   checked={isOptionSelected('low_vision', 'audio_driven')}
-                  onChange={() => handleCheckboxClick('low_vision', 'audio_driven')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'audio_driven', label);
+                  }}
                 />
                 <label htmlFor="audioDriven">Audio-Driven Gameplay: Relies on sound design and audio cues to guide players through the game.</label>
               </div>
@@ -252,7 +340,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="textToSpeech"
                   checked={isOptionSelected('low_vision', 'text_to_speech')}
-                  onChange={() => handleCheckboxClick('low_vision', 'text_to_speech')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'text_to_speech', label);
+                  }}
                 />
                 <label htmlFor="textToSpeech">Text-to-Speech and Screen Readers: Converts in-game text, menus, and notifications into spoken words, helping blind players navigate game interfaces and understand story elements.</label>
               </div>
@@ -267,7 +358,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="colourBlindModes"
                   checked={isOptionSelected('cvd', 'color_blind_modes')}
-                  onChange={() => handleCheckboxClick('cvd', 'color_blind_modes')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('cvd', 'color_blind_modes', label);
+                  }}
                 />
                 <label htmlFor="colourBlindModes">Colour-blind Modes: Adjust in-game colours to accommodate different types of CVD.</label>
               </div>
@@ -277,7 +371,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="highContrast"
                   checked={isOptionSelected('cvd', 'high_contrast')}
-                  onChange={() => handleCheckboxClick('cvd', 'high_contrast')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('cvd', 'high_contrast', label);
+                  }}
                 />
                 <label htmlFor="highContrast">High Contrast: Improves visibility by making items and text easier to differentiate.</label>
               </div>
@@ -287,7 +384,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="cvdAudioDriven"
                   checked={isOptionSelected('low_vision', 'audio_driven')}
-                  onChange={() => handleCheckboxClick('low_vision', 'audio_driven')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'audio_driven', label);
+                  }}
                 />
                 <label htmlFor="cvdAudioDriven">Audio-Driven Game-play</label>
               </div>
@@ -297,7 +397,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="cvdTextToSpeech"
                   checked={isOptionSelected('low_vision', 'text_to_speech')}
-                  onChange={() => handleCheckboxClick('low_vision', 'text_to_speech')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'text_to_speech', label);
+                  }}
                 />
                 <label htmlFor="cvdTextToSpeech">Text-to-Speech and Screen Readers</label>
               </div>
@@ -314,7 +417,10 @@ const SensoryAssessment: React.FC = () => {
                 type="checkbox"
                 id="hearingAccessibility"
                 checked={isOptionSelected('audio', 'hearing_accessibility')}
-                onChange={() => handleCheckboxClick('audio', 'hearing_accessibility')}
+                onChange={(e) => {
+                  const label = e.target.nextElementSibling?.textContent || '';
+                  handleCheckboxClick('audio', 'hearing_accessibility', label);
+                }}
               />
               <label htmlFor="hearingAccessibility">Hearing Accessibility</label>
             </div>
@@ -324,7 +430,10 @@ const SensoryAssessment: React.FC = () => {
                 type="checkbox"
                 id="visualIndicators"
                 checked={isOptionSelected('audio', 'visual_indicators')}
-                onChange={() => handleCheckboxClick('audio', 'visual_indicators')}
+                onChange={(e) => {
+                  const label = e.target.nextElementSibling?.textContent || '';
+                  handleCheckboxClick('audio', 'visual_indicators', label);
+                }}
               />
               <label htmlFor="visualIndicators">Visual Indicators for Audio Cues</label>
             </div>
@@ -334,7 +443,10 @@ const SensoryAssessment: React.FC = () => {
                 type="checkbox"
                 id="audioCopilot"
                 checked={isOptionSelected('low_vision', 'copilot')}
-                onChange={() => handleCheckboxClick('low_vision', 'copilot')}
+                onChange={(e) => {
+                  const label = e.target.nextElementSibling?.textContent || '';
+                  handleCheckboxClick('low_vision', 'copilot', label);
+                }}
               />
               <label htmlFor="audioCopilot">Copilot</label>
             </div>
@@ -344,7 +456,10 @@ const SensoryAssessment: React.FC = () => {
                 type="checkbox"
                 id="audioHapticFeedback"
                 checked={isOptionSelected('low_vision', 'haptic_feedback')}
-                onChange={() => handleCheckboxClick('low_vision', 'haptic_feedback')}
+                onChange={(e) => {
+                  const label = e.target.nextElementSibling?.textContent || '';
+                  handleCheckboxClick('low_vision', 'haptic_feedback', label);
+                }}
               />
               <label htmlFor="audioHapticFeedback">Haptic Feedback</label>
             </div>
@@ -362,7 +477,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="pressureSensitivity"
                   checked={isOptionSelected('tactile', 'pressure_sensitivity')}
-                  onChange={() => handleCheckboxClick('tactile', 'pressure_sensitivity')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('tactile', 'pressure_sensitivity', label);
+                  }}
                 />
                 <label htmlFor="pressureSensitivity">Pressure sensitivity button</label>
               </div>
@@ -372,7 +490,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="lowForceButtons"
                   checked={isOptionSelected('physical', 'low_force_buttons')}
-                  onChange={() => handleCheckboxClick('physical', 'low_force_buttons')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('physical', 'low_force_buttons', label);
+                  }}
                 />
                 <label htmlFor="lowForceButtons">Low-Force Buttons (Database: Physical functional limitations)</label>
               </div>
@@ -387,7 +508,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="tactileHapticFeedback"
                   checked={isOptionSelected('low_vision', 'haptic_feedback')}
-                  onChange={() => handleCheckboxClick('low_vision', 'haptic_feedback')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('low_vision', 'haptic_feedback', label);
+                  }}
                 />
                 <label htmlFor="tactileHapticFeedback">Haptic Feedback</label>
               </div>
@@ -402,7 +526,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="adaptiveController"
                   checked={isOptionSelected('tactile', 'adaptive_controller')}
-                  onChange={() => handleCheckboxClick('tactile', 'adaptive_controller')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('tactile', 'adaptive_controller', label);
+                  }}
                 />
                 <label htmlFor="adaptiveController">Adaptive Controller Grip</label>
               </div>
@@ -412,7 +539,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="designedLab"
                   checked={isOptionSelected('tactile', 'designed_lab')}
-                  onChange={() => handleCheckboxClick('tactile', 'designed_lab')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('tactile', 'designed_lab', label);
+                  }}
                 />
                 <label htmlFor="designedLab">Designed Lab</label>
               </div>
@@ -422,7 +552,10 @@ const SensoryAssessment: React.FC = () => {
                   type="checkbox"
                   id="adaptiveSwitches"
                   checked={isOptionSelected('adaptive_switches', 'sensory')}
-                  onChange={() => handleCheckboxClick('adaptive_switches', 'sensory')}
+                  onChange={(e) => {
+                    const label = e.target.nextElementSibling?.textContent || '';
+                    handleCheckboxClick('adaptive_switches', 'sensory', label);
+                  }}
                 />
                 <label htmlFor="adaptiveSwitches">Adaptive Switches (Database: Adaptive Switches -- I. Sensory)</label>
               </div>
@@ -432,10 +565,11 @@ const SensoryAssessment: React.FC = () => {
       </div>
 
       {/* 修改推荐面板显示 */}
-      {recommendations.length > 0 && (
+      {(recommendations.length > 0 || activeCodes.size > 0) && (
         <RecommendationDetail
           recommendations={recommendations}
           onClose={handleRemoveCode}
+          activeCodes={activeCodes}
         />
       )}
     </div>

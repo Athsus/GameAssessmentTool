@@ -3,6 +3,8 @@ import styles from './RecommendationDetail.module.css';
 import { useCart } from '../contexts/CartContext';
 import { supabase } from '../supabaseClient';
 import ImageUrlInput from './ImageUrlInput';
+import ProductForm from './ProductForm';
+import { getFormConfigByCode } from '../services/formConfigs';
 
 export interface RecommendationProduct {
   id: string;
@@ -31,11 +33,13 @@ export interface Recommendation {
 interface RecommendationDetailProps {
   recommendations?: Recommendation[];
   onClose: (() => void) | ((code: string) => void);
+  activeCodes?: Set<string>;
 }
 
 const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
   recommendations = [],
   onClose,
+  activeCodes = new Set(),
 }) => {
   const { items, addItem, removeItem } = useCart();
   const [showImageUrlInput, setShowImageUrlInput] = useState<string | null>(null);
@@ -46,6 +50,7 @@ const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
   const [recommendationsState, setRecommendations] = useState(recommendations);
   // 存储每个代码的展开/折叠状态
   const [expandedCodes, setExpandedCodes] = useState<Record<string, boolean>>({});
+  const [showAddForm, setShowAddForm] = useState<string | null>(null);
 
   // 使用 useEffect 监听 recommendations 属性的变化
   useEffect(() => {
@@ -148,14 +153,6 @@ const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
     }
   };
 
-  // 处理关闭按钮点击
-  // const handleClose = () => {
-  //   if (typeof onClose === 'function') {
-  //     const codeToPass = recommendations.length > 0 ? recommendations[0].code : '';
-  //     onClose(codeToPass);
-  //   }
-  // };
-
   // 切换收缩状态
   const toggleCollapse = () => {
     setIsCollapsed(!isCollapsed);
@@ -180,6 +177,12 @@ const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
 
   // 获取代码对应的用户友好标题
   const getCodeTitle = (code: string, recs: Recommendation[]): string => {
+    // First check if we have a stored label for this code
+    const labelMap = JSON.parse(sessionStorage.getItem('checkboxLabels') || '{}');
+    if (labelMap[code]) {
+      return labelMap[code];
+    }
+    
     // 从KeyboardAssessment组件中获取代码映射
     const codeToTitleMap: Record<string, string> = {
       '1.1': 'Ergonomic Keyboards',
@@ -214,10 +217,10 @@ const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
       '3.3.1': 'Pressure Sensitivity Button',
       '3.3.2': 'Designed Lab',
       '2.1.2': 'Low-Force Buttons',
-      'AS-1': 'Adaptive Switches',
+      'AS-1': 'Adaptive Switches'
     };
 
-    // 首先尝试从映射中获取标题
+    // Then try the predefined mappings
     if (codeToTitleMap[code]) {
       return codeToTitleMap[code];
     }
@@ -231,6 +234,76 @@ const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
     // 最后的后备选项是代码本身
     return `Code ${code}`;
   };
+
+  // 首先，在组件内部添加一个函数来处理空列表的情况
+  const handleEmptyCodeGroup = (code: string) => {
+    // 从 sessionStorage 获取标签
+    const labelMap = JSON.parse(sessionStorage.getItem('checkboxLabels') || '{}');
+    const title = labelMap[code] || `Code ${code}`;
+    
+    return (
+      <div key={code} className={styles.codeGroup}>
+        <div className={styles.codeHeader}>
+          <div 
+            className={styles.codeTitle}
+            onClick={() => toggleCodeExpand(code)}
+          >
+            <h4>{title}</h4>
+            <span>{expandedCodes[code] ? '▲' : '▼'}</span>
+          </div>
+          <div className={styles.codeActions}>
+            <button 
+              className={styles.addItemButton}
+              onClick={() => handleAddItem(code)}
+              aria-label="Add new item"
+            >
+              +
+            </button>
+            <button 
+              className={styles.removeCodeButton}
+              onClick={() => {
+                if (typeof onClose === 'function') {
+                  onClose(code);
+                }
+              }}
+              aria-label="Remove this group"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        
+        {expandedCodes[code] && (
+          <div className={styles.emptyCodeMessage}>
+            No items available. Click the + button to add a new item.
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 添加处理添加新项目的函数
+  const handleAddItem = (code: string) => {
+    setShowAddForm(code);
+  };
+
+  // 处理表单成功提交
+  const handleFormSuccess = () => {
+    // 关闭表单
+    setShowAddForm(null);
+    
+    // 触发事件通知父组件刷新数据
+    const event = new CustomEvent('recommendationsUpdated', { 
+      detail: { refreshData: true } 
+    });
+    window.dispatchEvent(event);
+  };
+
+  // 获取所有活跃的代码，包括没有项目的代码
+  const allActiveCodes = new Set([
+    ...Object.keys(groupedRecommendations),
+    ...Array.from(activeCodes)
+  ]);
 
   return (
     <div className={`${styles.detailContainer} ${isCollapsed ? styles.collapsed : ''}`}>
@@ -248,84 +321,101 @@ const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
           <h3>Products & Resources</h3>
         </div>
         
-        {/* 按代码分组显示推荐 */}
-        {Object.entries(groupedRecommendations).map(([code, recs]) => (
-          <div key={code} className={styles.codeGroup}>
-            <div className={styles.codeHeader}>
-              <div 
-                className={styles.codeTitle}
-                onClick={() => toggleCodeExpand(code)}
-              >
-                <h4>{getCodeTitle(code, recs)}</h4>
-                <span>{expandedCodes[code] ? '▲' : '▼'}</span>
-              </div>
-              <button 
-                className={styles.removeCodeButton}
-                onClick={() => {
-                  if (typeof onClose === 'function') {
-                    onClose(code);
-                  }
-                }}
-                aria-label="Remove this group"
-              >
-                ✕
-              </button>
-            </div>
-            
-            {expandedCodes[code] && (
-              <div className={styles.codeRecommendations}>
-                {recs.map((rec) => (
-                  <div 
-                    key={rec.id} 
-                    className={`${styles.recommendationItem} ${isItemSelected(rec.id) ? styles.selected : ''}`}
-                    onClick={() => handleItemToggle(rec)}
-                    role="button"
-                    tabIndex={0}
+        {/* 渲染所有代码组 */}
+        {Array.from(allActiveCodes).map(code => {
+          const recs = groupedRecommendations[code] || [];
+          
+          if (recs.length === 0) {
+            return handleEmptyCodeGroup(code);
+          }
+          
+          return (
+            <div key={code} className={styles.codeGroup}>
+              <div className={styles.codeHeader}>
+                <div 
+                  className={styles.codeTitle}
+                  onClick={() => toggleCodeExpand(code)}
+                >
+                  <h4>{getCodeTitle(code, recs)}</h4>
+                  <span>{expandedCodes[code] ? '▲' : '▼'}</span>
+                </div>
+                <div className={styles.codeActions}>
+                  <button 
+                    className={styles.addItemButton}
+                    onClick={() => handleAddItem(code)}
+                    aria-label="Add new item"
                   >
-                    <div className={styles.imageContainer}>
-                      {rec.image_url ? (
-                        <img src={rec.image_url} alt={rec.product} />
-                      ) : (
-                        <div className={styles.noImage}>No Image</div>
-                      )}
-                      <button 
-                        className={styles.editImageButton}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          setShowImageUrlInput(rec.id);
-                          setImageUrl(rec.image_url || '');
-                        }}
-                      >
-                        {rec.image_url ? '✏️' : '+'}
-                      </button>
-                    </div>
-                    <div className={styles.content}>
-                      <h4>{rec.product}</h4>
-                      {rec.description && (
-                        <p className={styles.description}>{rec.description}</p>
-                      )}
-                      {rec.website && (
-                        <a 
-                          href={rec.website} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          className={styles.link}
-                          onClick={(e) => e.stopPropagation()}
+                    +
+                  </button>
+                  <button 
+                    className={styles.removeCodeButton}
+                    onClick={() => {
+                      if (typeof onClose === 'function') {
+                        onClose(code);
+                      }
+                    }}
+                    aria-label="Remove this group"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              
+              {expandedCodes[code] && (
+                <div className={styles.codeRecommendations}>
+                  {recs.map((rec) => (
+                    <div 
+                      key={rec.id} 
+                      className={`${styles.recommendationItem} ${isItemSelected(rec.id) ? styles.selected : ''}`}
+                      onClick={() => handleItemToggle(rec)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      <div className={styles.imageContainer}>
+                        {rec.image_url ? (
+                          <img src={rec.image_url} alt={rec.product} />
+                        ) : (
+                          <div className={styles.noImage}>No Image</div>
+                        )}
+                        <button 
+                          className={styles.editImageButton}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            setShowImageUrlInput(rec.id);
+                            setImageUrl(rec.image_url || '');
+                          }}
                         >
-                          View Details
-                        </a>
-                      )}
-                      <div className={styles.selectionStatus}>
-                        {isItemSelected(rec.id) ? 'Selected ✓' : 'Click to select'}
+                          {rec.image_url ? '✏️' : '+'}
+                        </button>
+                      </div>
+                      <div className={styles.content}>
+                        <h4>{rec.product}</h4>
+                        {rec.description && (
+                          <p className={styles.description}>{rec.description}</p>
+                        )}
+                        {rec.website && (
+                          <a 
+                            href={rec.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className={styles.link}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            View Details
+                          </a>
+                        )}
+                        <div className={styles.selectionStatus}>
+                          {isItemSelected(rec.id) ? 'Selected ✓' : 'Click to select'}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
         
         {/* Render the ImageUrlInput outside of the item loop to prevent event bubbling issues */}
         {showImageUrlInput && (
@@ -344,9 +434,10 @@ const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
             sourceTable={recommendationsState.find(r => r.id === showImageUrlInput)?.code.startsWith('6.3') 
               ? 'severe_impairment_alter' 
               : recommendationsState.find(r => r.id === showImageUrlInput)?.code.startsWith('5') 
-                ? 'sensory_recommendation'
+                ? 'sensory_recommendations'
                 : 'keyboard_recommendations'
             }
+            rowId={showImageUrlInput}
           />
         )}
         
@@ -358,6 +449,16 @@ const RecommendationDetail: React.FC<RecommendationDetailProps> = ({
         
         {isUpdating && <div className={styles.loadingIndicator}>Updating...</div>}
       </div>
+      
+      {/* Add form modal */}
+      {showAddForm && (
+        <ProductForm
+          config={getFormConfigByCode(showAddForm)}
+          code={showAddForm}
+          onSuccess={handleFormSuccess}
+          onCancel={() => setShowAddForm(null)}
+        />
+      )}
     </div>
   );
 };

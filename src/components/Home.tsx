@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from '../components/App.module.css';
+import Authentication from './Authentication/Authentication';
+import { useAuth } from '../contexts/AuthContext';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, login } = useAuth();
+  const [showAuth, setShowAuth] = useState(false);
 
   const assessments = [
     {
@@ -23,25 +27,29 @@ const Home: React.FC = () => {
       title: 'Keyboard & Mouse Assessment',
       description: 'Evaluate functional needs and corresponding keyboard types for limitations',
       path: '/keyboard-assessment',
+      status: 'active'
     },
     {
       id: 'physical',
       title: 'Physical Functional Limitations',
       description: 'Assess physical limitations and recommend suitable gaming equipment',
       path: '/physical-limitation',
-      status: 'under-construction'
+      status: 'active'
     },
     {
       id: 'gefpt',
       title: 'GEFPT',
       description: 'Gaming Executive Function Performance Test',
-      path: '/gefpt'
+      path: '/gefpt',
+      status: 'active'
     },
     {
       id: 'database',
       title: 'Database Management',
       description: 'Manage assessment data and user records',
-      path: '/database-management'
+      path: '/database-management',
+      status: 'active',
+      requiresAuth: true
     }
     // {
     //   id: 'future1',
@@ -57,10 +65,38 @@ const Home: React.FC = () => {
     // }
   ];
 
+  const handleAssessmentClick = (assessment: any) => {
+    if (assessment.requiresAuth && !isAuthenticated) {
+      setShowAuth(true);
+    } else {
+      navigate(assessment.path);
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    login();
+    setShowAuth(false);
+    
+    // 找到数据库管理选项并导航到它
+    const dbManagement = assessments.find(a => a.id === 'database');
+    if (dbManagement) {
+      navigate(dbManagement.path);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <div className={styles.assessmentContainer}>
-        <h1 className={styles.assessmentTitle}>Gaming Assessment Tools</h1>
+        <div className={styles.headerRow}>
+          <h1 className={styles.assessmentTitle}>Gaming Assessment Tools</h1>
+          <button 
+            className={styles.adminLoginButton}
+            onClick={() => setShowAuth(true)}
+          >
+            Admin Login
+          </button>
+        </div>
+        
         <div className={styles.assessmentGrid}>
           {assessments.map((assessment) => (
             <div 
@@ -75,7 +111,7 @@ const Home: React.FC = () => {
               {assessment.path && (
                 <button 
                   className={styles.assessmentButton}
-                  onClick={() => navigate(assessment.path)}
+                  onClick={() => handleAssessmentClick(assessment)}
                 >
                   Start Assessment
                 </button>
@@ -84,6 +120,13 @@ const Home: React.FC = () => {
           ))}
         </div>
       </div>
+      
+      {showAuth && (
+        <Authentication 
+          onSuccess={handleAuthSuccess}
+          onCancel={() => setShowAuth(false)}
+        />
+      )}
     </div>
   );
 };

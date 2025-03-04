@@ -31,7 +31,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 1001;
+  z-index: 101;
   box-shadow: -2px 0 5px rgba(0,0,0,0.1);
 }
 
@@ -400,4 +400,39 @@
 
 .removeCodeButton:hover {
   color: #ff7875;
+}
+
+.codeActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addItemButton {
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.addItemButton:hover {
+  background: #388e3c;
+}
+
+.emptyCodeMessage {
+  padding: 1rem;
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  background: #f9f9f9;
+  border-radius: 4px;
+  margin-top: 0.5rem;
 } 

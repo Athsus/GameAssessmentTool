@@ -57,4 +57,26 @@
   font-weight: 500;
   margin: 8px 0;
   font-style: italic;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.adminLoginButton {
+  background-color: #4a90e2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.adminLoginButton:hover {
+  background-color: #3a80d2;
 } 

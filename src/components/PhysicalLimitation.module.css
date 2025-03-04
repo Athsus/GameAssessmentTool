@@ -221,4 +221,11 @@
   border-radius: 4px;
   font-size: 0.9rem;
   resize: vertical;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 } 

@@ -1,25 +1,30 @@
 .exportButton {
-  position: fixed;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 1rem;
-  background-color: #28a745;
+  background-color: #3498db;
   color: white;
   border: none;
+  padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: background-color 0.2s;
-  writing-mode: vertical-lr;
-  text-orientation: mixed;
-  z-index: 1000;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 .exportButton:hover {
-  background-color: #218838;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  background-color: #2980b9;
+}
+
+.exportButton:active {
+  background-color: #1f6aa5;
+}
+
+/* 打印时隐藏导出按钮 */
+@media print {
+  .exportButton {
+    display: none !important;
+  }
 }
 
 .exportButton:disabled {

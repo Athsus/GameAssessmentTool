@@ -4,6 +4,7 @@ import styles from './PhysicalLimitation.module.css';
 import RecommendationDetail from './RecommendationDetail';
 import { supabase } from '../supabaseClient';
 import { Recommendation } from './RecommendationDetail';
+import ExportButton from './ExportButton';
 
 const PhysicalLimitation: React.FC = () => {
   const [isROMImpaired, setIsROMImpaired] = useState(false);
@@ -79,11 +80,11 @@ const PhysicalLimitation: React.FC = () => {
           const formattedData = physicalData.map(item => ({
             id: item.id,
             code: item.code,
-            category: item.category || '',
+            category: item.product || item.category || '',
             subcategory: item.subcategory || '',
             product: item.product || '',
             website: item.website || '',
-            description: item.subcategory || null,
+            description: item.description || item.subcategory || null,
             image_url: item.image_url || null
           }));
           
@@ -103,8 +104,8 @@ const PhysicalLimitation: React.FC = () => {
           const formattedData = controllerData.map(item => ({
             id: item.id,
             code: 'AC', // Using fixed code for all items
-            category: item.category || '',
-            subcategory: '',
+            category: 'Adaptive Controller',
+            subcategory: item.category || '',
             product: item.product || '',
             website: item.website || '',
             description: item.category || null,
@@ -127,8 +128,8 @@ const PhysicalLimitation: React.FC = () => {
           const formattedData = switchesData.map(item => ({
             id: item.id,
             code: 'AS', // Using fixed code for all items
-            category: item.category || '',
-            subcategory: '',
+            category: 'Adaptive Switches',
+            subcategory: item.category || '',
             product: item.product || '',
             website: item.website || '',
             description: item.category || null,
@@ -139,7 +140,7 @@ const PhysicalLimitation: React.FC = () => {
         }
       }
 
-      // Query severe_impairment_alter table - same as keyboard implementation
+      // Query severe_impairment_alter table
       if (severeCodes.length > 0) {
         const { data: severeData, error: severeError } = await supabase
           .from('severe_impairment_alter')
@@ -152,11 +153,11 @@ const PhysicalLimitation: React.FC = () => {
           const formattedData = severeData.map(item => ({
             id: item.id,
             code: item.code,
-            category: item.category || '',
+            category: item.product || item.category || '',  // Use product name as primary title
             subcategory: item.subcategory || '',
             product: item.product || '',
             website: item.website || '',
-            description: item.subcategory || null,
+            description: item.description || item.subcategory || null,
             image_url: item.image_url || null
           }));
           
@@ -181,7 +182,7 @@ const PhysicalLimitation: React.FC = () => {
   };
 
   // Handle checkbox click
-  const handleCheckboxClick = (id: string) => {
+  const handleCheckboxClick = (id: string, label?: string) => {
     // Check if deselecting
     const isRemoving = checkedItems.has(id);
     
@@ -195,6 +196,17 @@ const PhysicalLimitation: React.FC = () => {
       }
       return newChecked;
     });
+    
+    // Store the label for this checkbox if provided
+    if (label && !isRemoving) {
+      const mapping = codeMapping[id];
+      if (mapping) {
+        // Store in sessionStorage
+        const labelMap = JSON.parse(sessionStorage.getItem('checkboxLabels') || '{}');
+        labelMap[mapping.code] = label;
+        sessionStorage.setItem('checkboxLabels', JSON.stringify(labelMap));
+      }
+    }
     
     // If deselecting, call handleRemoveCode
     if (isRemoving) {
@@ -275,11 +287,19 @@ const PhysicalLimitation: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <BackButton />
+    <div className={styles.container} id="physical-limitation-content">
+      <div className={styles.header}>
+        <BackButton />
+        <ExportButton 
+          title="Physical Assessment"
+          contentId="physical-limitation-content"
+          formType="physical"
+        />
+      </div>
+      
+      <h1 className={styles.title}>Physical Limitation Assessment</h1>
+      
       <div className={styles.mainContent}>
-        <h1 className={styles.title}>Functional Limitations Assessment</h1>
-        
         <div className={styles.databaseNote}>
           <h3>Specific Related Database:</h3>
           <div className={styles.checkItem}>
@@ -287,7 +307,7 @@ const PhysicalLimitation: React.FC = () => {
               type="checkbox" 
               id="adaptiveSwitches" 
               checked={isOptionSelected('adaptiveSwitches')}
-              onChange={() => handleCheckboxClick('adaptiveSwitches')}
+              onChange={() => handleCheckboxClick('adaptiveSwitches', 'Adaptive Switches - see database Adaptive Switches')}
             />
             <label htmlFor="adaptiveSwitches">Adaptive Switches - see database Adaptive Switches</label>
           </div>
@@ -296,7 +316,7 @@ const PhysicalLimitation: React.FC = () => {
               type="checkbox" 
               id="adaptiveController" 
               checked={isOptionSelected('adaptiveController')}
-              onChange={() => handleCheckboxClick('adaptiveController')}
+              onChange={() => handleCheckboxClick('adaptiveController', 'Adaptive Controller -- see database Adaptive Controller')}
             />
             <label htmlFor="adaptiveController">Adaptive Controller -- see database Adaptive Controller</label>
           </div>
@@ -309,7 +329,7 @@ const PhysicalLimitation: React.FC = () => {
             <div className={styles.headerCell}></div>
             <div className={styles.headerCell}></div>
             <div className={styles.headerCell}>Recommend Products Database</div>
-          </div>
+      </div>
 
           {/* Range of Motion Section */}
           <div className={styles.tableRow}>
@@ -391,7 +411,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="thumbstickExtenders" 
                     checked={isOptionSelected('thumbstickExtenders')}
-                    onChange={() => handleCheckboxClick('thumbstickExtenders')}
+                    onChange={() => handleCheckboxClick('thumbstickExtenders', '1.1.1 Thumbstick Extenders/ Customizable Thumbsticks')}
                   />
                   <label htmlFor="thumbstickExtenders">1.1.1 Thumbstick Extenders/ Customizable Thumbsticks</label>
                 </div>
@@ -400,7 +420,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adjustableTrigger" 
                     checked={isOptionSelected('adjustableTrigger')}
-                    onChange={() => handleCheckboxClick('adjustableTrigger')}
+                    onChange={() => handleCheckboxClick('adjustableTrigger', '1.2.1 Adjustable trigger lengths')}
                   />
                   <label htmlFor="adjustableTrigger">1.2.1 Adjustable trigger lengths</label>
                 </div>
@@ -409,7 +429,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="flightJoystick" 
                     checked={isOptionSelected('flightJoystick')}
-                    onChange={() => handleCheckboxClick('flightJoystick')}
+                    onChange={() => handleCheckboxClick('flightJoystick', '1.2.2 Flight Joystick')}
                   />
                   <label htmlFor="flightJoystick">1.2.2 Flight Joystick</label>
                 </div>
@@ -418,7 +438,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="gyroscopicControllers" 
                     checked={isOptionSelected('gyroscopicControllers')}
-                    onChange={() => handleCheckboxClick('gyroscopicControllers')}
+                    onChange={() => handleCheckboxClick('gyroscopicControllers', '1.2.3 Gyroscopic Controllers (Motion-Sensitive)')}
                   />
                   <label htmlFor="gyroscopicControllers">1.2.3 Gyroscopic Controllers (Motion-Sensitive)</label>
                 </div>
@@ -427,7 +447,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="paddleAttachments" 
                     checked={isOptionSelected('paddleAttachments')}
-                    onChange={() => handleCheckboxClick('paddleAttachments')}
+                    onChange={() => handleCheckboxClick('paddleAttachments', '1.2.4 Paddle Attachments (Elite Controllers Only)')}
                   />
                   <label htmlFor="paddleAttachments">1.2.4 Paddle Attachments (Elite Controllers Only)</label>
                 </div>
@@ -436,7 +456,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="customizableJoysticks" 
                     checked={isOptionSelected('customizableJoysticks')}
-                    onChange={() => handleCheckboxClick('customizableJoysticks')}
+                    onChange={() => handleCheckboxClick('customizableJoysticks', '1.2.5 Customizable Joysticks/D-Pads')}
                   />
                   <label htmlFor="customizableJoysticks">1.2.5 Customizable Joysticks/D-Pads</label>
                 </div>
@@ -481,9 +501,9 @@ const PhysicalLimitation: React.FC = () => {
                 </div>
                 <div className={styles.jointItem}>
                   <span>Shoulder</span>
-                  <div className={styles.sideBySide}>
-                    <label>L <input type="checkbox" /></label>
-                    <label>R <input type="checkbox" /></label>
+                <div className={styles.sideBySide}>
+                  <label>L <input type="checkbox" /></label>
+                  <label>R <input type="checkbox" /></label>
                   </div>
                 </div>
               </div>
@@ -495,7 +515,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="controllerMounts" 
                     checked={isOptionSelected('controllerMounts')}
-                    onChange={() => handleCheckboxClick('controllerMounts')}
+                    onChange={() => handleCheckboxClick('controllerMounts', '1.3.1 Controller Mounts')}
                   />
                   <label htmlFor="controllerMounts">1.3.1 Controller Mounts</label>
                 </div>
@@ -504,7 +524,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adaptiveController2" 
                     checked={isOptionSelected('adaptiveController')}
-                    onChange={() => handleCheckboxClick('adaptiveController')}
+                    onChange={() => handleCheckboxClick('adaptiveController', 'Adaptive Controller')}
                   />
                   <label htmlFor="adaptiveController2">Adaptive Controller</label>
                 </div>
@@ -513,7 +533,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adaptiveSwitches2" 
                     checked={isOptionSelected('adaptiveSwitches')}
-                    onChange={() => handleCheckboxClick('adaptiveSwitches')}
+                    onChange={() => handleCheckboxClick('adaptiveSwitches', 'Adaptive Switches')}
                   />
                   <label htmlFor="adaptiveSwitches2">Adaptive Switches</label>
                 </div>
@@ -601,7 +621,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adjustableTensionThumbsticks" 
                     checked={isOptionSelected('adjustableTensionThumbsticks')}
-                    onChange={() => handleCheckboxClick('adjustableTensionThumbsticks')}
+                    onChange={() => handleCheckboxClick('adjustableTensionThumbsticks', '2.1.1 Adjustable tension thumbsticks')}
                   />
                   <label htmlFor="adjustableTensionThumbsticks">2.1.1 Adjustable tension thumbsticks</label>
                 </div>
@@ -610,7 +630,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="lowForceButtons" 
                     checked={isOptionSelected('lowForceButtons')}
-                    onChange={() => handleCheckboxClick('lowForceButtons')}
+                    onChange={() => handleCheckboxClick('lowForceButtons', '2.1.2 Low-Force Buttons')}
                   />
                   <label htmlFor="lowForceButtons">2.1.2 Low-Force Buttons</label>
                 </div>
@@ -619,7 +639,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="paddleAttachments2" 
                     checked={isOptionSelected('paddleAttachments')}
-                    onChange={() => handleCheckboxClick('paddleAttachments')}
+                    onChange={() => handleCheckboxClick('paddleAttachments', '1.2.4 Paddle Attachments')}
                   />
                   <label htmlFor="paddleAttachments2">1.2.4 Paddle Attachments</label>
                 </div>
@@ -657,10 +677,10 @@ const PhysicalLimitation: React.FC = () => {
                 </div>
                 <div className={styles.jointItem}>
                   <span>Elbow</span>
-                  <div className={styles.sideBySide}>
-                    <label>L <input type="checkbox" /></label>
-                    <label>R <input type="checkbox" /></label>
-                  </div>
+                    <div className={styles.sideBySide}>
+                      <label>L <input type="checkbox" /></label>
+                      <label>R <input type="checkbox" /></label>
+                    </div>
                 </div>
                 <div className={styles.jointItem}>
                   <span>Shoulder</span>
@@ -673,13 +693,13 @@ const PhysicalLimitation: React.FC = () => {
             </div>
             <div className={styles.recommendationsCell}>
               <div className={styles.databaseTitle}>*Database Physical Functional Limitations Mount</div>
-              <div className={styles.recommendList}>
+                <div className={styles.recommendList}>
                 <div className={styles.checkItem}>
                   <input 
                     type="checkbox" 
                     id="controllerMounts2" 
                     checked={isOptionSelected('controllerMounts')}
-                    onChange={() => handleCheckboxClick('controllerMounts')}
+                    onChange={() => handleCheckboxClick('controllerMounts', '1.3.1 Controller Mounts')}
                   />
                   <label htmlFor="controllerMounts2">1.3.1 Controller Mounts</label>
                 </div>
@@ -752,7 +772,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adaptiveSwitches3" 
                     checked={isOptionSelected('adaptiveSwitches')}
-                    onChange={() => handleCheckboxClick('adaptiveSwitches')}
+                    onChange={() => handleCheckboxClick('adaptiveSwitches', 'Adaptive Switches')}
                   />
                   <label htmlFor="adaptiveSwitches3">Adaptive Switches</label>
                 </div>
@@ -761,7 +781,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adaptiveController3" 
                     checked={isOptionSelected('adaptiveController')}
-                    onChange={() => handleCheckboxClick('adaptiveController')}
+                    onChange={() => handleCheckboxClick('adaptiveController', 'Adaptive Controller')}
                   />
                   <label htmlFor="adaptiveController3">Adaptive Controller</label>
                 </div>
@@ -770,7 +790,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="buttonRemapping" 
                     checked={isOptionSelected('buttonRemapping')}
-                    onChange={() => handleCheckboxClick('buttonRemapping')}
+                    onChange={() => handleCheckboxClick('buttonRemapping', 'Button Re-Mapping and Accessibility Features')}
                   />
                   <label htmlFor="buttonRemapping">Button Re-Mapping and Accessibility Features</label>
                 </div>
@@ -779,7 +799,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="controllerMounts3" 
                     checked={isOptionSelected('controllerMounts')}
-                    onChange={() => handleCheckboxClick('controllerMounts')}
+                    onChange={() => handleCheckboxClick('controllerMounts', '1.3.1 Controller Mounts')}
                   />
                   <label htmlFor="controllerMounts3">1.3.1 Controller Mounts</label>
                 </div>
@@ -824,7 +844,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adaptiveSwitches4" 
                     checked={isOptionSelected('adaptiveSwitches')}
-                    onChange={() => handleCheckboxClick('adaptiveSwitches')}
+                    onChange={() => handleCheckboxClick('adaptiveSwitches', 'Adaptive Switches')}
                   />
                   <label htmlFor="adaptiveSwitches4">Adaptive Switches</label>
                 </div>
@@ -833,7 +853,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adaptiveController4" 
                     checked={isOptionSelected('adaptiveController')}
-                    onChange={() => handleCheckboxClick('adaptiveController')}
+                    onChange={() => handleCheckboxClick('adaptiveController', 'Adaptive Controller')}
                   />
                   <label htmlFor="adaptiveController4">Adaptive Controller</label>
                 </div>
@@ -842,7 +862,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="oneHandConsoleController" 
                     checked={isOptionSelected('oneHandConsoleController')}
-                    onChange={() => handleCheckboxClick('oneHandConsoleController')}
+                    onChange={() => handleCheckboxClick('oneHandConsoleController', '6.1 One-hand Console controller (Database: Severe Impairment alter)')}
                   />
                   <label htmlFor="oneHandConsoleController">6.1 One-hand Console controller (Database: Severe Impairment alter)</label>
                 </div>
@@ -851,7 +871,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="controllerMounts4" 
                     checked={isOptionSelected('controllerMounts')}
-                    onChange={() => handleCheckboxClick('controllerMounts')}
+                    onChange={() => handleCheckboxClick('controllerMounts', '1.3.1 Controller Mounts')}
                   />
                   <label htmlFor="controllerMounts4">1.3.1 Controller Mounts</label>
                 </div>
@@ -931,7 +951,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="oneHandConsoleController2" 
                     checked={isOptionSelected('oneHandConsoleController')}
-                    onChange={() => handleCheckboxClick('oneHandConsoleController')}
+                    onChange={() => handleCheckboxClick('oneHandConsoleController', '6.1 One-hand Console controller')}
                   />
                   <label htmlFor="oneHandConsoleController2">6.1 One-hand Console controller</label>
                 </div>
@@ -940,7 +960,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="controllerMounts5" 
                     checked={isOptionSelected('controllerMounts')}
-                    onChange={() => handleCheckboxClick('controllerMounts')}
+                    onChange={() => handleCheckboxClick('controllerMounts', '1.3.1 Controller Mounts')}
                   />
                   <label htmlFor="controllerMounts5">1.3.1 Controller Mounts</label>
                 </div>
@@ -949,7 +969,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adaptiveSwitches5" 
                     checked={isOptionSelected('adaptiveSwitches')}
-                    onChange={() => handleCheckboxClick('adaptiveSwitches')}
+                    onChange={() => handleCheckboxClick('adaptiveSwitches', 'Adaptive Switches')}
                   />
                   <label htmlFor="adaptiveSwitches5">Adaptive Switches</label>
                 </div>
@@ -1102,7 +1122,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="quadStick" 
                     checked={isOptionSelected('quadStick')}
-                    onChange={() => handleCheckboxClick('quadStick')}
+                    onChange={() => handleCheckboxClick('quadStick', '6.2 QuadStick')}
                   />
                   <label htmlFor="quadStick">6.2 QuadStick</label>
                 </div>
@@ -1111,7 +1131,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="adaptiveSwitches6" 
                     checked={isOptionSelected('adaptiveSwitches')}
-                    onChange={() => handleCheckboxClick('adaptiveSwitches')}
+                    onChange={() => handleCheckboxClick('adaptiveSwitches', 'Adaptive Switches')}
                   />
                   <label htmlFor="adaptiveSwitches6">Adaptive Switches</label>
                 </div>
@@ -1248,7 +1268,7 @@ const PhysicalLimitation: React.FC = () => {
                     type="checkbox" 
                     id="eyeTracking" 
                     checked={isOptionSelected('eyeTracking')}
-                    onChange={() => handleCheckboxClick('eyeTracking')}
+                    onChange={() => handleCheckboxClick('eyeTracking', '6.3 Eye tracking')}
                   />
                   <label htmlFor="eyeTracking">6.3 Eye tracking</label>
                 </div>
@@ -1259,14 +1279,15 @@ const PhysicalLimitation: React.FC = () => {
       </div>
 
       {/* Recommendations panel */}
-      {recommendations.length > 0 && (
+      {(recommendations.length > 0 || activeCodes.size > 0) && (
         <RecommendationDetail
           recommendations={recommendations}
           onClose={handleRemoveCode}
+          activeCodes={activeCodes}
         />
       )}
     </div>
   );
 };
 
-export default PhysicalLimitation;
+export default PhysicalLimitation; 

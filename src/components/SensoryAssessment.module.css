@@ -7,19 +7,21 @@
 
 .title {
   text-align: center;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   color: #333;
+  font-size: 1.8rem;
 }
 
 .description {
   text-align: center;
   margin-bottom: 2rem;
   color: #666;
+  font-size: 1rem;
 }
 
 .assessmentTable {
   background: white;
-  padding: 2rem;
+  padding: 1rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -38,29 +40,36 @@
 .section h2 {
   color: #2c3e50;
   margin-bottom: 1rem;
+  font-size: 1.4rem;
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #3498db;
+  border-bottom: 2px solid #34495e;
 }
 
 .subsection {
-  margin-left: 1.5rem;
   margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 4px;
 }
 
 .subsection h3 {
-  color: #34495e;
+  color: #2c3e50;
   margin-bottom: 1rem;
+  font-size: 1.1rem;
 }
 
 .recommendations {
-  margin-left: 1.5rem;
+  margin-top: 1rem;
 }
 
 .checkItem {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 0.8rem;
   gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  padding: 0.5rem;
+  background-color: white;
+  border-radius: 4px;
 }
 
 .checkItem input[type="checkbox"] {
@@ -71,4 +80,11 @@
   color: #444;
   font-size: 0.95rem;
   line-height: 1.4;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
 } 

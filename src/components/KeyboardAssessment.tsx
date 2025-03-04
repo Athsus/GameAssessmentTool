@@ -4,6 +4,7 @@ import styles from './KeyboardAssessment.module.css';
 import RecommendationDetail from './RecommendationDetail';
 import { supabase } from '../supabaseClient';
 import { Recommendation } from './RecommendationDetail';
+import ExportButton from './ExportButton';
 
 const KeyboardAssessment: React.FC = () => {
   const [isROMImpaired, setIsROMImpaired] = useState(false);
@@ -121,7 +122,7 @@ const KeyboardAssessment: React.FC = () => {
   };
 
   // 处理复选框点击
-  const handleCheckboxClick = (id: string) => {
+  const handleCheckboxClick = (id: string, label: string) => {
     // 检查是否正在取消选择
     const isRemoving = checkedItems.has(id);
     
@@ -135,6 +136,17 @@ const KeyboardAssessment: React.FC = () => {
       }
       return newChecked;
     });
+    
+    // 存储标签文本（如果提供）
+    if (label && !isRemoving) {
+      const mapping = codeMapping[id];
+      if (mapping) {
+        // 存储在 sessionStorage 中
+        const labelMap = JSON.parse(sessionStorage.getItem('checkboxLabels') || '{}');
+        labelMap[mapping.code] = label;
+        sessionStorage.setItem('checkboxLabels', JSON.stringify(labelMap));
+      }
+    }
     
     // 如果是取消选择，直接调用 handleRemoveCode
     if (isRemoving) {
@@ -203,10 +215,19 @@ const KeyboardAssessment: React.FC = () => {
   };
 
   return (
-    <div className={styles.container}>
-      <BackButton />
+    <div className={styles.container} id="keyboard-assessment-content">
+      <div className={styles.header}>
+        <BackButton />
+        <ExportButton 
+          title="Keyboard Assessment"
+          contentId="keyboard-assessment-content"
+          formType="keyboard"
+        />
+      </div>
+      
+      <h1 className={styles.title}>Keyboard and Mouse Assessment</h1>
+      
       <div className={styles.mainContent}>
-        <h1 className={styles.title}>Keyboard and Mouse Functional Needs Assessment</h1>
         <p className={styles.description}>
           Based on the assessment results, please check the suitable functional needs and corresponding
           keyboard types for each functional limitation.
@@ -224,7 +245,7 @@ const KeyboardAssessment: React.FC = () => {
                   // 检查是否已经选中
                   if (!checkedItems.has('gamingKeyboards')) {
                     // 如果没有选中，则添加到选中项并触发获取
-                    handleCheckboxClick('gamingKeyboards');
+                    handleCheckboxClick('gamingKeyboards', 'Gaming Keyboards');
                   }
                 }}
               >
@@ -350,7 +371,7 @@ const KeyboardAssessment: React.FC = () => {
                       type="checkbox" 
                       id="ergonomicKeyboards" 
                       checked={isOptionSelected('ergonomicKeyboards')}
-                      onChange={() => handleCheckboxClick('ergonomicKeyboards')}
+                      onChange={() => handleCheckboxClick('ergonomicKeyboards', 'Ergonomic Keyboards')}
                     />
                     <label htmlFor="ergonomicKeyboards">Ergonomic Keyboards</label>
                   </div>
@@ -359,7 +380,7 @@ const KeyboardAssessment: React.FC = () => {
                       type="checkbox" 
                       id="splitKeyboards" 
                       checked={isOptionSelected('splitKeyboards')}
-                      onChange={() => handleCheckboxClick('splitKeyboards')}
+                      onChange={() => handleCheckboxClick('splitKeyboards', 'Split Keyboards')}
                     />
                     <label htmlFor="splitKeyboards">Split Keyboards</label>
                   </div>
@@ -368,7 +389,7 @@ const KeyboardAssessment: React.FC = () => {
                       type="checkbox" 
                       id="gamingKeyboards" 
                       checked={isOptionSelected('gamingKeyboards')}
-                      onChange={() => handleCheckboxClick('gamingKeyboards')}
+                      onChange={() => handleCheckboxClick('gamingKeyboards', 'Gaming Keyboards')}
                     />
                     <label htmlFor="gamingKeyboards">Gaming Keyboards</label>
                   </div>
@@ -377,7 +398,7 @@ const KeyboardAssessment: React.FC = () => {
                       type="checkbox" 
                       id="compactKeyboards" 
                       checked={isOptionSelected('compactKeyboards')}
-                      onChange={() => handleCheckboxClick('compactKeyboards')}
+                      onChange={() => handleCheckboxClick('compactKeyboards', 'Compact Keyboards')}
                     />
                     <label htmlFor="compactKeyboards">Compact Keyboards</label>
                   </div>
@@ -386,7 +407,7 @@ const KeyboardAssessment: React.FC = () => {
                       type="checkbox" 
                       id="ergonomicMouse" 
                       checked={isOptionSelected('ergonomicMouse')}
-                      onChange={() => handleCheckboxClick('ergonomicMouse')}
+                      onChange={() => handleCheckboxClick('ergonomicMouse', 'Ergonomic Mouse')}
                     />
                     <label htmlFor="ergonomicMouse">Ergonomic Mouse</label>
                   </div>
@@ -395,7 +416,7 @@ const KeyboardAssessment: React.FC = () => {
                       type="checkbox" 
                       id="gamingMouse" 
                       checked={isOptionSelected('gamingMouse')}
-                      onChange={() => handleCheckboxClick('gamingMouse')}
+                      onChange={() => handleCheckboxClick('gamingMouse', 'Gaming Mouse')}
                     />
                     <label htmlFor="gamingMouse">Gaming Mouse</label>
                   </div>
@@ -423,7 +444,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="alternativeInput" 
                     checked={isOptionSelected('alternativeInput')}
-                    onChange={() => handleCheckboxClick('alternativeInput')}
+                    onChange={() => handleCheckboxClick('alternativeInput', 'Alternative Input Devices')}
                   />
                   <label htmlFor="alternativeInput">Alternative Input Devices</label>
                 </div>
@@ -432,7 +453,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="keyGuard" 
                     checked={isOptionSelected('keyGuard')}
-                    onChange={() => handleCheckboxClick('keyGuard')}
+                    onChange={() => handleCheckboxClick('keyGuard', 'Key guard/Mouse Guard')}
                   />
                   <label htmlFor="keyGuard">Key guard/Mouse Guard</label>
                 </div>
@@ -441,7 +462,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="trackballMouse" 
                     checked={isOptionSelected('trackballMouse')}
-                    onChange={() => handleCheckboxClick('trackballMouse')}
+                    onChange={() => handleCheckboxClick('trackballMouse', 'Trackball Mouse')}
                   />
                   <label htmlFor="trackballMouse">Trackball Mouse</label>
                 </div>
@@ -450,7 +471,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="largeKeyKeyboards" 
                     checked={isOptionSelected('largeKeyKeyboards')}
-                    onChange={() => handleCheckboxClick('largeKeyKeyboards')}
+                    onChange={() => handleCheckboxClick('largeKeyKeyboards', 'Large-Key Keyboards')}
                   />
                   <label htmlFor="largeKeyKeyboards">Large-Key Keyboards</label>
                 </div>
@@ -476,7 +497,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="lowForceKeyboards" 
                     checked={isOptionSelected('lowForceKeyboards')}
-                    onChange={() => handleCheckboxClick('lowForceKeyboards')}
+                    onChange={() => handleCheckboxClick('lowForceKeyboards', 'Low-Force Keyboards')}
                   />
                   <label htmlFor="lowForceKeyboards">Low-Force Keyboards</label>
                 </div>
@@ -485,7 +506,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="lowForceMouse" 
                     checked={isOptionSelected('lowForceMouse')}
-                    onChange={() => handleCheckboxClick('lowForceMouse')}
+                    onChange={() => handleCheckboxClick('lowForceMouse', 'Low-Force Mouse')}
                   />
                   <label htmlFor="lowForceMouse">Low-Force Mouse</label>
                 </div>
@@ -511,7 +532,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="largeKeyKeyboards" 
                     checked={isOptionSelected('largeKeyKeyboards')}
-                    onChange={() => handleCheckboxClick('largeKeyKeyboards')}
+                    onChange={() => handleCheckboxClick('largeKeyKeyboards', 'Large-Key Keyboards')}
                   />
                   <label htmlFor="largeKeyKeyboardsVision">Large-Key Keyboards</label>
                 </div>
@@ -520,7 +541,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="brailleKeyboards" 
                     checked={isOptionSelected('brailleKeyboards')}
-                    onChange={() => handleCheckboxClick('brailleKeyboards')}
+                    onChange={() => handleCheckboxClick('brailleKeyboards', 'Braille Keyboards')}
                   />
                   <label htmlFor="brailleKeyboards">Braille Keyboards</label>
                 </div>
@@ -536,7 +557,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="headMouthStick" 
                     checked={isOptionSelected('headMouthStick')}
-                    onChange={() => handleCheckboxClick('headMouthStick')}
+                    onChange={() => handleCheckboxClick('headMouthStick', 'Head/Mouth Stick Keyboard')}
                   />
                   <label htmlFor="headMouthStick">Head/Mouth Stick Keyboard</label>
                 </div>
@@ -545,7 +566,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="wearableKeyboards" 
                     checked={isOptionSelected('wearableKeyboards')}
-                    onChange={() => handleCheckboxClick('wearableKeyboards')}
+                    onChange={() => handleCheckboxClick('wearableKeyboards', 'Wearable keyboards')}
                   />
                   <label htmlFor="wearableKeyboards">Wearable keyboards</label>
                 </div>
@@ -554,7 +575,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="headMouse" 
                     checked={isOptionSelected('headMouse')}
-                    onChange={() => handleCheckboxClick('headMouse')}
+                    onChange={() => handleCheckboxClick('headMouse', 'Head mouse')}
                   />
                   <label htmlFor="headMouse">Head mouse</label>
                 </div>
@@ -563,7 +584,7 @@ const KeyboardAssessment: React.FC = () => {
                     type="checkbox" 
                     id="eyeTracking" 
                     checked={isOptionSelected('eyeTracking')}
-                    onChange={() => handleCheckboxClick('eyeTracking')}
+                    onChange={() => handleCheckboxClick('eyeTracking', 'Eye-Tracking Mouse (Database: Severe Impairments alter -- 6.3 Eye Gaze)')}
                   />
                   <label htmlFor="eyeTracking">Eye-Tracking Mouse (Database: Severe Impairments alter -- 6.3 Eye Gaze)</label>
                 </div>
@@ -586,10 +607,11 @@ const KeyboardAssessment: React.FC = () => {
       </div>
 
       {/* 推荐产品部分 */}
-      {recommendations.length > 0 && (
+      {(recommendations.length > 0 || activeCodes.size > 0) && (
         <RecommendationDetail
           recommendations={recommendations}
           onClose={handleRemoveCode}
+          activeCodes={activeCodes}
         />
       )}
     </div>

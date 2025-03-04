@@ -7,13 +7,15 @@ interface ImageUrlInputProps {
   onSave: (url: string) => void;
   onCancel: () => void;
   sourceTable: string;
+  rowId: string;
 }
 
 const ImageUrlInput: React.FC<ImageUrlInputProps> = ({ 
   initialUrl, 
   onSave, 
   onCancel,
-  sourceTable 
+  sourceTable,
+  rowId
 }) => {
   const [url, setUrl] = useState(initialUrl);
   const [file, setFile] = useState<File | null>(null);
@@ -55,24 +57,6 @@ const ImageUrlInput: React.FC<ImageUrlInputProps> = ({
     }
   };
 
-  // List all available buckets for debugging
-  const listBuckets = async () => {
-    try {
-      const { data, error } = await supabase.storage.listBuckets();
-      if (error) {
-        setDebugInfo(`Error listing buckets: ${error.message}`);
-        return [];
-      }
-      
-      const bucketNames = data.map(bucket => bucket.name);
-      setDebugInfo(`Available buckets: ${bucketNames.join(', ')}`);
-      return bucketNames;
-    } catch (error) {
-      setDebugInfo(`Exception listing buckets: ${error}`);
-      return [];
-    }
-  };
-
   const handleFileUpload = async () => {
     if (!file) return;
     
@@ -81,83 +65,20 @@ const ImageUrlInput: React.FC<ImageUrlInputProps> = ({
     setDebugInfo('');
     
     try {
-      // List available buckets first
-      const buckets = await listBuckets();
-      if (buckets.length === 0) {
-        throw new Error('No storage buckets available');
-      }
+      // Use hardcoded "images" bucket (plural form)
+      const bucketName = 'images';
       
-      // Use the first available bucket instead of hardcoding "bucket"
-      const bucketName = buckets[0];
-      
-      // Determine the folder based on the source table
-      let folder = 'images/KMA';
-      if (sourceTable === 'sensory_recommendation') {
-        folder = 'images/SFI';
-      } else if (sourceTable === 'severe_impairment_alter') {
-        folder = 'images/SIA';
-      }
-      
-      setDebugInfo(prev => `${prev}\nUsing bucket: ${bucketName}, folder: ${folder}`);
-      
-      // Check if folder exists, create if not
-      const { error: folderCheckError } = await supabase.storage
-        .from(bucketName)
-        .list(folder.split('/')[0]);
-        
-      if (folderCheckError) {
-        setDebugInfo(prev => `${prev}\nError checking folder: ${folderCheckError.message}`);
-      }
-      
-      // Get the file count to determine the new filename
-      const { data: existingFiles, error: countError } = await supabase.storage
-        .from(bucketName)
-        .list(folder);
-      
-      if (countError) {
-        setDebugInfo(prev => `${prev}\nError listing files: ${countError.message}`);
-        // If we can't list files, we'll just use a timestamp as the filename
-        const timestamp = new Date().getTime();
-        const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
-        const fileName = `Picture_${timestamp}.${fileExt}`;
-        const filePath = `${folder}/${fileName}`;
-        
-        // Upload the file
-        const { error } = await supabase.storage
-          .from(bucketName)
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true
-          });
-        
-        if (error) {
-          throw error;
-        }
-        
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage
-          .from(bucketName)
-          .getPublicUrl(filePath);
-        
-        if (publicUrlData && publicUrlData.publicUrl) {
-          onSave(publicUrlData.publicUrl);
-        } else {
-          throw new Error('Failed to get public URL for uploaded file');
-        }
-        
-        return;
-      }
-      
-      // Calculate the next file number
-      const fileCount = existingFiles ? existingFiles.length + 1 : 1;
-      setDebugInfo(prev => `${prev}\nExisting files count: ${fileCount}`);
+      setDebugInfo(`Using bucket: ${bucketName}`);
       
       // Get file extension
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
       
-      // Create the filename
-      const fileName = `Picture${fileCount}.${fileExt}`;
-      const filePath = `${folder}/${fileName}`;
+      // Create a unique filename using timestamp to avoid collisions
+      const timestamp = new Date().getTime();
+      const fileName = `Picture_${timestamp}.${fileExt}`;
+      
+      // Upload directly to root of the bucket without subfolder
+      const filePath = fileName;
       
       setDebugInfo(prev => `${prev}\nUploading to path: ${filePath}`);
       
@@ -184,12 +105,57 @@ const ImageUrlInput: React.FC<ImageUrlInputProps> = ({
       } else {
         throw new Error('Failed to get public URL for uploaded file');
       }
-      
+
+      // Save the URL to the database
+      if (sourceTable) {
+        await saveImageUrlToDatabase(sourceTable, rowId, publicUrlData.publicUrl);
+      }else{
+        console.log('No database table provided');
+      }
+
     } catch (error) {
       console.error('Error uploading file:', error);
       setUploadError(`Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+
+  const saveImageUrlToDatabase = async (tableName: string, rowId: string, imageUrl: string) => {
+    try {
+      const { error } = await supabase
+        .from(tableName)
+        .update({ image_url: imageUrl })
+        .eq('id', rowId);
+      if (error) throw error;
+      return { success: true };
+    } catch (error) {
+      console.error('Error saving image URL:', error);
+      return { success: false, error };
+    }
+  };
+
+  const checkPermissions = async () => {
+    setDebugInfo('Checking permissions...');
+    
+    try {
+      // 1. Check authentication status
+      const { data: { session } } = await supabase.auth.getSession();
+      const authStatus = !!session ? 'Logged in' : 'Not logged in';
+      
+      // 2. Test storage permissions
+      const { data, error } = await supabase.storage
+        .from('images')
+        .list('', { limit: 1 });
+        
+      const storageStatus = error ? 
+        `Storage access failed: ${error.message}` : 
+        `Storage access successful, found ${data.length} files`;
+        
+      setDebugInfo(`Auth status: ${authStatus}\nStorage status: ${storageStatus}`);
+    } catch (error) {
+      setDebugInfo(`Permission check failed: ${error}`);
     }
   };
 
@@ -246,10 +212,13 @@ const ImageUrlInput: React.FC<ImageUrlInputProps> = ({
           
           {activeTab === 'file' && (
             <div className={styles.formGroup}>
-              <div className={styles.underConstruction}>
-                <p>🚧 File upload feature is currently under construction 🚧</p>
-                <p>Please use the URL option instead.</p>
-              </div>
+              <button 
+                type="button" 
+                onClick={checkPermissions}
+                className={styles.checkPermissionButton}
+              >
+                Check Upload Permissions
+              </button>
               
               <label htmlFor="imageFile">Select Image File:</label>
               <input
@@ -258,7 +227,6 @@ const ImageUrlInput: React.FC<ImageUrlInputProps> = ({
                 accept="image/*"
                 onChange={handleFileChange}
                 className={styles.fileInput}
-                disabled
               />
               
               {uploadError && (
