@@ -8,13 +8,13 @@ import ExportButton from './ExportButton';
 
 const KeyboardAssessment: React.FC = () => {
   const [isROMImpaired, setIsROMImpaired] = useState(false);
-  // 存储每个 checkbox 的选中状态
+  // Store checkbox selection states
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
-  // 存储活跃的 codes（用于查询）
+  // Store active codes (for queries)
   const [activeCodes, setActiveCodes] = useState<Set<string>>(new Set());
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
 
-  // 定义代码映射关系
+  // Define code mapping relationships
   const codeMapping: Record<string, { code: string, table: string }> = {
     'ergonomicKeyboards': { code: '1.1', table: 'keyboard_recommendations' },
     'splitKeyboards': { code: '1.2', table: 'keyboard_recommendations' },
@@ -35,10 +35,10 @@ const KeyboardAssessment: React.FC = () => {
     'eyeTracking': { code: '6.3', table: 'severe_impairment_alter' }
   };
 
-  // 获取推荐内容的函数
+  // Function to fetch recommendations
   const fetchRecommendations = async () => {
     try {
-      // 按表分组查询
+      // Group queries by table
       const keyboardCodes = Array.from(activeCodes).filter(code => 
         Object.values(codeMapping).some(mapping => 
           mapping.code === code && mapping.table === 'keyboard_recommendations'
@@ -53,7 +53,7 @@ const KeyboardAssessment: React.FC = () => {
 
       let newRecommendations: Recommendation[] = [];
 
-      // 查询keyboard_recommendations表
+      // Query keyboard_recommendations table
       if (keyboardCodes.length > 0) {
         const { data: keyboardData, error: keyboardError } = await supabase
           .from('keyboard_recommendations')
@@ -78,7 +78,7 @@ const KeyboardAssessment: React.FC = () => {
         }
       }
 
-      // 查询severe_impairment_alter表
+      // Query severe_impairment_alter table
       if (severeCodes.length > 0) {
         const { data: severeData, error: severeError } = await supabase
           .from('severe_impairment_alter')

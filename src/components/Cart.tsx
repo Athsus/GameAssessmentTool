@@ -8,7 +8,6 @@ const Cart: React.FC = () => {
 
   return (
     <div className={styles.cartContainer}>
-      {/* 购物车按钮 */}
       <button 
         className={styles.cartButton}
         onClick={() => setIsOpen(!isOpen)}
@@ -16,7 +15,6 @@ const Cart: React.FC = () => {
         Selected Items ({items.length})
       </button>
 
-      {/* 购物车面板 */}
       {isOpen && (
         <div className={styles.cartPanel}>
           <div className={styles.cartHeader}>

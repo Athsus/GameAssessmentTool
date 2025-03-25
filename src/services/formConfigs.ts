@@ -1,6 +1,6 @@
 import { FormConfig } from '../components/ProductForm';
 
-// 键盘推荐表单配置
+// Keyboard recommendation form configuration
 export const keyboardRecommendationConfig: FormConfig = {
   tableName: 'keyboard_recommendations',
   title: 'Add Keyboard Recommendation',
@@ -133,7 +133,7 @@ export const keyboardRecommendationConfig: FormConfig = {
   }
 };
 
-// 物理限制推荐表单配置
+// Physical limitation form configuration
 export const physicalRecommendationConfig: FormConfig = {
   tableName: 'physical_recommendations',
   title: 'Add Physical Limitation Recommendation',
@@ -238,7 +238,7 @@ export const physicalRecommendationConfig: FormConfig = {
   }
 };
 
-// 感官评估推荐表单配置
+// Sensory assessment form configuration
 export const sensoryRecommendationConfig: FormConfig = {
   tableName: 'sensory_recommendation',
   title: 'Add Sensory Recommendation',
@@ -367,7 +367,7 @@ export const sensoryRecommendationConfig: FormConfig = {
   }
 };
 
-// 严重障碍替代设备表单配置
+// Severe impairment alternative device form configuration
 export const severeImpairmentConfig: FormConfig = {
   tableName: 'severe_impairment_alter',
   title: 'Add Severe Impairment Alternative',
@@ -442,7 +442,7 @@ export const severeImpairmentConfig: FormConfig = {
   }
 };
 
-// 自适应控制器表单配置
+// Adaptive controller form configuration
 export const adaptiveControllerConfig: FormConfig = {
   tableName: 'adaptive_controllers',
   title: 'Add Adaptive Controller',
@@ -493,7 +493,7 @@ export const adaptiveControllerConfig: FormConfig = {
   }
 };
 
-// 自适应开关表单配置
+// Adaptive switch form configuration
 export const adaptiveSwitchConfig: FormConfig = {
   tableName: 'adaptive_switches',
   title: 'Add Adaptive Switch',
@@ -548,7 +548,7 @@ export const adaptiveSwitchConfig: FormConfig = {
   }
 };
 
-// 根据代码前缀获取正确的表单配置
+// Get correct form configuration based on code prefix
 export const getFormConfigByCode = (code: string): FormConfig => {
   if (code.startsWith('1.') || code.startsWith('3.') || code.startsWith('4.')) {
     return keyboardRecommendationConfig;
@@ -563,7 +563,7 @@ export const getFormConfigByCode = (code: string): FormConfig => {
   } else if (code === 'AC') {
     return adaptiveControllerConfig;
   } else {
-    // 默认返回键盘推荐配置
+    // Default to keyboard recommendation configuration
     return keyboardRecommendationConfig;
   }
 }; 

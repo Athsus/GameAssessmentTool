@@ -17,7 +17,7 @@ interface CartContextType {
   clearCart: () => void;
 }
 
-// 提供默认值
+// Provide default value
 const defaultContext: CartContextType = {
   items: [],
   addItem: () => {},
@@ -25,9 +25,9 @@ const defaultContext: CartContextType = {
   clearCart: () => {},
 };
 
-// 创建 context 时提供默认值
+// Create context with default value
 const CartContext = createContext<CartContextType>(defaultContext);
-CartContext.displayName = 'CartContext'; // 添加显示名称，确保 context 被正确识别
+CartContext.displayName = 'CartContext'; // Add display name to ensure context is correctly identified
 
 export { CartContext };
 
@@ -36,7 +36,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const addItem = (item: CartItem) => {
     setItems(prev => {
-      // 检查是否已存在
+      // Check if item already exists
       if (prev.some(i => i.id === item.id)) {
         return prev;
       }

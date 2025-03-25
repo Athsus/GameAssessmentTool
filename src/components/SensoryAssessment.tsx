@@ -7,13 +7,13 @@ import { Recommendation } from './RecommendationDetail';
 import ExportButton from './ExportButton';
 
 const SensoryAssessment: React.FC = () => {
-  // 存储每个 checkbox 的选中状态
+  // Store checkbox selection states
   const [checkedItems, setCheckedItems] = useState<Set<string>>(new Set());
-  // 存储活跃的 codes（用于查询）
+  // Store active codes (for queries)
   const [activeCodes, setActiveCodes] = useState<Set<string>>(new Set());
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
 
-  // 修改代码映射关系，为 adaptive_switches 添加 category 信息
+  // Update code mapping to add category info for adaptive_switches
   const codeMapping: Record<string, { code: string, table: string, category?: string }> = {
     'low_vision-text': { code: '1.1.1', table: 'sensory_recommendations' },
     'low_vision-color': { code: '1.1.2', table: 'sensory_recommendations' },
@@ -29,20 +29,20 @@ const SensoryAssessment: React.FC = () => {
     'tactile-pressure_sensitivity': { code: '3.3.1', table: 'sensory_recommendations' },
     'tactile-adaptive_controller': { code: '3.3.1', table: 'sensory_recommendations' },
     'tactile-designed_lab': { code: '3.3.2', table: 'sensory_recommendations' },
-    'physical-low_force_buttons': { code: '2.1.2', table: 'physical_recommendations' }, // 注意这里使用 physical_recommendations
+    'physical-low_force_buttons': { code: '2.1.2', table: 'physical_recommendations' }, // Note: using physical_recommendations table
     'adaptive_switches-sensory': { 
       code: 'AS', 
       table: 'adaptive_switches',
-      category: 'I. Sensory'  // 添加 category 信息
+      category: 'I. Sensory'  // Add category information
     },
     'audio-hearing_accessibility': { code: '2.1', table: 'sensory_recommendations' },
     'audio-visual_indicators': { code: '2.2', table: 'sensory_recommendations' },
   };
 
-  // 获取推荐内容的函数
+  // Function to fetch recommendations
   const fetchRecommendations = async (codes: string[]) => {
     try {
-      // 按表分组查询
+      // Group queries by table
       const physicalCodes = codes.filter(code => 
         Object.values(codeMapping).some(mapping => 
           mapping.code === code && mapping.table === 'physical_recommendations'
@@ -63,7 +63,7 @@ const SensoryAssessment: React.FC = () => {
 
       let newRecommendations: Recommendation[] = [];
 
-      // 查询 sensory_recommendations 表
+      // Query sensory_recommendations table
       if (sensoryCodes.length > 0) {
         const { data: sensoryData, error: sensoryError } = await supabase
           .from('sensory_recommendations')
@@ -76,7 +76,7 @@ const SensoryAssessment: React.FC = () => {
         }
       }
 
-      // 查询 physical_recommendations 表
+      // Query physical_recommendations table
       if (physicalCodes.length > 0) {
         const { data: physicalData, error: physicalError } = await supabase
           .from('physical_recommendations')
@@ -89,18 +89,18 @@ const SensoryAssessment: React.FC = () => {
         }
       }
 
-      // 查询 adaptive_switches 表
+      // Query adaptive_switches table
       if (adaptiveSwitchesCodes.length > 0) {
         const { data: switchesData, error: switchesError } = await supabase
           .from('adaptive_switches')
           .select('*')
-          .eq('category', 'I. Sensory'); // 使用 category 进行查询，而不是 code
+          .eq('category', 'I. Sensory'); // Query by category instead of code
 
         if (switchesError) throw switchesError;
         if (switchesData) {
           const formattedData = switchesData.map(item => ({
             id: item.id,
-            code: 'AS',  // 使用固定的 code
+            code: 'AS',  // Use fixed code
             category: item.category || '',
             subcategory: item.subcategory || '',
             product: item.product || '',

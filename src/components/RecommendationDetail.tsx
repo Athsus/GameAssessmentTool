@@ -18,7 +18,8 @@ export interface RecommendationProduct {
   subcategory?: string;
 }
 
-// 为了兼容旧的接口
+// For compatibility with old interface
+// Update recommendation panel display
 export interface Recommendation {
   id: string;
   code: string;
